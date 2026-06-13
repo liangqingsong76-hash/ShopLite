@@ -45,13 +45,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # ... 原有的应用
+    # 第三方登录库
     'django.contrib.sites',  # 必须添加
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.wechat',
-    'allauth.socialaccount.providers.alipay',
+    'allauth.socialaccount.providers.weixin',  # 注意是 weixin,
+    # 'allauth.socialaccount.providers.alipay',
+    'shop'
 ]
 SITE_ID = 1
 
@@ -64,6 +65,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'allauth.account.middleware.AccountMiddleware',   # 添加这一行
 ]
 
 ROOT_URLCONF = "shoplite.urls"
@@ -87,7 +89,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "shoplite.wsgi.application"
 
-
+#数据库修改
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -130,9 +132,12 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "UTC"
+# LANGUAGE_CODE = "en-us"
+#
+# TIME_ZONE = "UTC"
+#  调整为中文
+LANGUAGE_CODE = 'zh-hans' #'en-us'
+TIME_ZONE = 'Asia/Shanghai' #'UTC'
 
 USE_I18N = True
 

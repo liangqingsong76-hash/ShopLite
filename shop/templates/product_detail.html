@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto p-8 flex gap-8">
+    <!-- 图片区域 -->
+    <div class="w-1/2">
+        <img src="{{ product.image.url }}" class="rounded-xl w-full object-cover">
+    </div>
+    
+    <!-- 信息区域 -->
+    <div class="w-1/2">
+        <h1 class="text-3xl font-bold mb-2">{{ product.name }}</h1>
+        <div class="flex items-center gap-2 mb-4">
+            <span class="text-yellow-500">★★★★★</span> 
+            <span class="text-gray-500 text-sm">4.9 ({{ product.id }} 条评价)</span>
+        </div>
+        
+        <div class="text-3xl text-red-500 font-bold mb-6">¥{{ product.price }}</div>
+        
+        <div class="mb-6">
+            <div class="font-bold mb-2">颜色:</div>
+            <div class="flex gap-2">
+                <div class="w-8 h-8 rounded-full bg-gray-200 border border-gray-400 cursor-pointer"></div>
+                <div class="w-8 h-8 rounded-full bg-green-200 border border-gray-400 cursor-pointer"></div>
+            </div>
+        </div>
+
+        <div class="flex gap-4">
+            <button class="border border-black px-8 py-3 rounded-lg">加入购物车</button>
+            <button class="bg-black text-white px-8 py-3 rounded-lg">立即购买</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
