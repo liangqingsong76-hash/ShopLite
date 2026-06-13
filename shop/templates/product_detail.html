@@ -1,33 +1,210 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}ShopLite - {{ product.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .detail-layout {
+        display: grid;
+        grid-template-columns: 760px 1fr;
+        gap: 64px;
+    }
+
+    .gallery {
+        display: grid;
+        grid-template-columns: 96px 1fr;
+        gap: 24px;
+    }
+
+    .thumbs {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+    }
+
+    .thumb {
+        aspect-ratio: 1;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #f4f0eb;
+    }
+
+    .main-photo {
+        aspect-ratio: 1.08 / 1;
+        border-radius: 8px;
+        background:
+            radial-gradient(circle at 50% 45%, rgba(255,255,255,0.95), rgba(255,255,255,0) 28%),
+            linear-gradient(135deg, #eee7dd, #fbfaf7);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+    }
+
+    .main-photo .product-fallback {
+        width: 55%;
+    }
+
+    .detail-info h1 {
+        margin: 0 0 18px;
+        font-size: 30px;
+    }
+
+    .detail-price {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        margin: 28px 0;
+        font-size: 18px;
+    }
+
+    .detail-price .price-red {
+        font-size: 32px;
+    }
+
+    .swatches {
+        display: flex;
+        gap: 18px;
+        margin: 14px 0 30px;
+    }
+
+    .swatch {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 1px #c8c8c8;
+    }
+
+    .qty {
+        display: inline-grid;
+        grid-template-columns: 42px 48px 42px;
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-left: 12px;
+        vertical-align: middle;
+    }
+
+    .qty span {
+        display: grid;
+        place-items: center;
+        border-right: 1px solid var(--line);
+    }
+
+    .qty span:last-child { border-right: 0; }
+
+    .detail-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin: 30px 0;
+    }
+
+    .service-row {
+        display: flex;
+        gap: 42px;
+        margin-top: 34px;
+        font-weight: 600;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 52px;
+        margin: 40px 0 16px;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .tabs strong {
+        padding-bottom: 14px;
+        border-bottom: 2px solid var(--ink);
+    }
+
+    @media (max-width: 1100px) {
+        .detail-layout { grid-template-columns: 1fr; gap: 30px; }
+        .gallery { grid-template-columns: 1fr; }
+        .thumbs { grid-template-columns: repeat(5, 1fr); }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mx-auto p-8 flex gap-8">
-    <!-- 图片区域 -->
-    <div class="w-1/2">
-        <img src="{{ product.image.url }}" class="rounded-xl w-full object-cover">
-    </div>
-    
-    <!-- 信息区域 -->
-    <div class="w-1/2">
-        <h1 class="text-3xl font-bold mb-2">{{ product.name }}</h1>
-        <div class="flex items-center gap-2 mb-4">
-            <span class="text-yellow-500">★★★★★</span> 
-            <span class="text-gray-500 text-sm">4.9 ({{ product.id }} 条评价)</span>
+<div class="crumb">首页 <span>›</span> 家居日用 <span>›</span> {{ product.name }}</div>
+
+<section class="detail-layout">
+    <div class="gallery">
+        <div class="thumbs">
+            <div class="thumb"></div>
+            <div class="thumb"></div>
+            <div class="thumb"></div>
+            <div class="thumb"></div>
+            <div class="thumb"></div>
         </div>
-        
-        <div class="text-3xl text-red-500 font-bold mb-6">¥{{ product.price }}</div>
-        
-        <div class="mb-6">
-            <div class="font-bold mb-2">颜色:</div>
-            <div class="flex gap-2">
-                <div class="w-8 h-8 rounded-full bg-gray-200 border border-gray-400 cursor-pointer"></div>
-                <div class="w-8 h-8 rounded-full bg-green-200 border border-gray-400 cursor-pointer"></div>
-            </div>
+        <div class="main-photo">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+            {% else %}
+                <span class="product-fallback"></span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="detail-info">
+        <h1>{{ product.name }}</h1>
+        <div class="product-meta"><span class="stars">★★★★★</span><span>{{ product.rating|default:"4.9" }}（128 条评价）</span></div>
+        <div class="detail-price">
+            <span class="price price-red">¥{{ product.price }}</span>
+            {% if product.original_price %}<span class="old-price">¥{{ product.original_price }}</span>{% endif %}
+            <span style="padding: 6px 10px; border-radius: 6px; background: #fff0f0; color: var(--danger);">已省 ¥100</span>
         </div>
 
-        <div class="flex gap-4">
-            <button class="border border-black px-8 py-3 rounded-lg">加入购物车</button>
-            <button class="bg-black text-white px-8 py-3 rounded-lg">立即购买</button>
+        <strong>颜色：</strong><span style="margin-left: 10px;">米白色</span>
+        <div class="swatches">
+            <span class="swatch" style="background:#d9cbbb;"></span>
+            <span class="swatch" style="background:#d7ddc8;"></span>
+            <span class="swatch" style="background:#111;"></span>
+        </div>
+
+        <div><strong>数量：</strong><span class="qty"><span>−</span><span>1</span><span>+</span></span></div>
+
+        <div class="detail-actions">
+            <a class="btn" href="{% url 'shop:cart' %}">加入购物车</a>
+            <a class="btn btn-primary" href="{% url 'shop:cart' %}">立即购买</a>
+        </div>
+
+        <div class="service-row">
+            <span>正品保障</span>
+            <span>七天无理由退换</span>
+            <span>极速配送</span>
         </div>
     </div>
-</div>
+</section>
+
+<section>
+    <div class="tabs">
+        <strong>商品描述</strong>
+        <span>参数信息</span>
+        <span>评价（128）</span>
+    </div>
+    <p class="muted">简约设计，优雅配色，满足日常使用需求。商品图片和数据后续可以通过后台维护，页面会自动读取数据库内容。</p>
+</section>
+
+<section>
+    <div class="section-title"><h2>相关推荐</h2></div>
+    <div class="product-grid">
+        {% for item in related_products %}
+            <article class="product-card">
+                <a class="product-image" href="{% url 'shop:product_detail' item.id %}">
+                    {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.name }}">
+                    {% else %}
+                        <span class="product-fallback"></span>
+                    {% endif %}
+                </a>
+                <div class="product-name">{{ item.name }}</div>
+                <div class="price">¥{{ item.price }}</div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
 {% endblock %}

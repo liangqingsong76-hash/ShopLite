@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 首页{% endblock %}
+
+{% block extra_head %}
+<style>
+    .home-layout {
+        display: grid;
+        grid-template-columns: 190px 1fr;
+        gap: 20px;
+    }
+
+    .hero {
+        min-height: 350px;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 460px;
+        align-items: center;
+        padding: 54px;
+        background:
+            radial-gradient(circle at 78% 45%, rgba(255,255,255,0.72), rgba(255,255,255,0) 22%),
+            linear-gradient(110deg, #f5ede4 0%, #fbfaf8 54%, #ded1c4 100%);
+    }
+
+    .hero h1 {
+        margin: 0 0 18px;
+        font-size: 24px;
+    }
+
+    .hero strong {
+        display: block;
+        font-size: 34px;
+        margin-bottom: 36px;
+        letter-spacing: 0;
+    }
+
+    .hero-scene {
+        height: 260px;
+        position: relative;
+    }
+
+    .chair {
+        position: absolute;
+        right: 34px;
+        bottom: 0;
+        width: 210px;
+        height: 210px;
+        border-radius: 40px 40px 8px 8px;
+        border: 22px solid #b88755;
+        background: #d9d0c3;
+    }
+
+    .table {
+        position: absolute;
+        right: 160px;
+        bottom: 0;
+        width: 260px;
+        height: 30px;
+        border-radius: 50%;
+        background: #c99560;
+        box-shadow: 0 34px 0 -8px #a46d3f;
+    }
+
+    .vase {
+        position: absolute;
+        right: 245px;
+        bottom: 30px;
+        width: 44px;
+        height: 86px;
+        border-radius: 22px 22px 14px 14px;
+        background: #eee6dc;
+    }
+
+    .lamp {
+        position: absolute;
+        right: 100px;
+        top: 0;
+        width: 120px;
+        height: 55px;
+        border-radius: 0 0 60px 60px;
+        background: #d8d1c7;
+        box-shadow: inset 0 -10px 16px rgba(255,255,255,0.55);
+    }
+
+    .category-bubbles {
+        grid-column: 2;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 22px;
+        margin: 30px 0;
+        text-align: center;
+    }
+
+    .bubble {
+        display: grid;
+        gap: 10px;
+        justify-items: center;
+        font-weight: 600;
+    }
+
+    .bubble .product-fallback {
+        width: 68px;
+        background: linear-gradient(145deg, #e7e1d8, #fff);
+    }
+
+    @media (max-width: 1100px) {
+        .home-layout { grid-template-columns: 1fr; }
+        .category-bubbles { grid-column: 1; grid-template-columns: repeat(3, 1fr); }
+        .hero { grid-template-columns: 1fr; padding: 32px; }
+        .hero-scene { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="home-layout">
+    <aside class="category-list">
+        {% for category in categories %}
+            <a class="category-item" href="{% url 'shop:category' %}?category={{ category.name }}">
+                <span class="category-name"><span class="tiny-icon">□</span>{{ category.name }}</span>
+                <span>›</span>
+            </a>
+        {% endfor %}
+    </aside>
+
+    <div class="hero">
+        <div>
+            <h1>发现品质生活</h1>
+            <strong>精选好物：简约 · 实用 · 高颜值</strong>
+            <a class="btn btn-primary" href="{% url 'shop:category' %}">立即选购</a>
+        </div>
+        <div class="hero-scene" aria-hidden="true">
+            <div class="lamp"></div>
+            <div class="chair"></div>
+            <div class="table"></div>
+            <div class="vase"></div>
+        </div>
+    </div>
+
+    <div class="category-bubbles">
+        {% for category in categories|slice:":7" %}
+            <a class="bubble" href="{% url 'shop:category' %}?category={{ category.name }}">
+                <span class="product-fallback"></span>
+                <span>{{ category.name }}</span>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+
+<section>
+    <div class="section-title">
+        <h2>热门商品</h2>
+        <a class="muted" href="{% url 'shop:category' %}">查看全部 ›</a>
+    </div>
+    <div class="product-grid">
+        {% for product in hot_products %}
+            <article class="product-card">
+                <a class="product-image" href="{% url 'shop:product_detail' product.id %}">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    {% else %}
+                        <span class="product-fallback"></span>
+                    {% endif %}
+                </a>
+                <div class="product-name">{{ product.name }}</div>
+                <div class="amount-row">
+                    <div>
+                        <span class="price">¥{{ product.price }}</span>
+                        {% if product.original_price %}
+                            <span class="old-price">¥{{ product.original_price }}</span>
+                        {% endif %}
+                    </div>
+                    <a class="round-add" href="{% url 'shop:cart' %}" aria-label="加入购物车">+</a>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

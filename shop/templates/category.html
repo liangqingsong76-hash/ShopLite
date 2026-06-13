@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 商品分类{% endblock %}
+
+{% block content %}
+<div class="crumb">首页 <span>›</span> <span>{{ active_category }}</span></div>
+
+<section style="display: grid; grid-template-columns: 230px 1fr; gap: 32px;">
+    <aside>
+        <h3 style="margin: 0 0 14px;">全部分类</h3>
+        <div class="category-list">
+            {% for category in categories %}
+                <a class="category-item {% if category.name == active_category %}active{% endif %}" href="{% url 'shop:category' %}?category={{ category.name }}">
+                    <span class="category-name"><span class="tiny-icon">□</span>{{ category.name }}</span>
+                    <span>›</span>
+                </a>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <div>
+        <div class="filters">
+            <div class="filter-row">
+                <strong>子分类：</strong>
+                <button class="pill active">全部</button>
+                <button class="pill">厨房用品</button>
+                <button class="pill">收纳整理</button>
+                <button class="pill">清洁用品</button>
+                <button class="pill">家纺布艺</button>
+                <button class="pill">装饰摆件</button>
+            </div>
+            <div class="filter-row">
+                <strong>品牌：</strong>
+                <button class="pill active">全部</button>
+                <button class="pill">米家</button>
+                <button class="pill">宜家</button>
+                <button class="pill">无印良品</button>
+                <button class="pill">小熊</button>
+                <button class="pill">飞利浦</button>
+            </div>
+            <div class="filter-row">
+                <strong>价格：</strong>
+                <button class="pill active">全部</button>
+                <button class="pill">0-99元</button>
+                <button class="pill">100-199元</button>
+                <button class="pill">200-299元</button>
+                <button class="pill">300-499元</button>
+                <button class="pill">500元以上</button>
+            </div>
+            <div class="filter-row">
+                <strong>综合：</strong>
+                <button class="pill active">综合排序</button>
+                <button class="pill">销量</button>
+                <button class="pill">新品</button>
+                <button class="pill">价格</button>
+                <button class="pill">评价</button>
+            </div>
+        </div>
+
+        <div class="product-grid">
+            {% for product in products %}
+                <article class="product-card">
+                    <a class="product-image" href="{% url 'shop:product_detail' product.id %}">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        {% else %}
+                            <span class="product-fallback"></span>
+                        {% endif %}
+                    </a>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="price">¥{{ product.price }}</div>
+                    <div class="product-meta">
+                        <span class="stars">★★★★★</span>
+                        <span>{{ product.rating|default:"4.8" }}</span>
+                        <span>已售 {{ product.sales|default:"1.2万" }}</span>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="empty-note">暂无商品，请先到后台添加商品。</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
