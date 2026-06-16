@@ -129,7 +129,16 @@
 {% endblock %}
 
 {% block content %}
-<div class="crumb">首页 <span>›</span> 家居日用 <span>›</span> {{ product.name }}</div>
+    <div class="crumb">
+        {% for item in breadcrumbs %}
+            {% if item.url %}
+                <a href="{% url item.url %}">{{ item.name }}</a>
+            {% else %}
+                <span>{{ item.name }}</span>
+            {% endif %}
+            {% if not forloop.last %}<span>›</span>{% endif %}
+        {% endfor %}
+    </div>
 
 <section class="detail-layout">
     <div class="gallery">

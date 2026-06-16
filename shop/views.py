@@ -1,6 +1,9 @@
 from decimal import Decimal
-
 from django.shortcuts import get_object_or_404, redirect, render
+from .models import CartItem, Category, Order, Product
+from .utils import build_breadcrumbs
+from decimal import Decimal
+from types import SimpleNamespace
 
 try:
     import stripe
@@ -48,10 +51,12 @@ def safe_products(limit=None):
     try:
         products = list(Product.objects.select_related("category").order_by("-created_at"))
         if products:
-            return products[:limit] if limit else products
+            return (products[:limit]if limit else products)
     except Exception:
         pass
-    return FALLBACK_PRODUCTS[:limit] if limit else FALLBACK_PRODUCTS
+
+    fallback = [SimpleNamespace(**item)for item in FALLBACK_PRODUCTS]
+    return (fallback[:limit]if limit else fallback)
 
 
 def home(request):
@@ -64,25 +69,53 @@ def home(request):
 
 def category(request):
     products = safe_products()
+    active_category = request.GET.get(
+        "category",
+        "家居日用"
+    )
+    breadcrumbs = build_breadcrumbs(
+        ("首页", "shop:home"),
+        (active_category, None)
+    )
     context = {
         "categories": safe_categories(),
         "products": products,
-        "active_category": request.GET.get("category", "家居日用"),
+        "active_category": active_category,
+        "breadcrumbs": breadcrumbs
     }
-    return render(request, "category.html", context)
+    return render(
+        request,
+        "category.html",
+        context
+    )
 
 
 def product_detail(request, product_id):
     try:
-        product = get_object_or_404(Product, id=product_id)
+        product = get_object_or_404(Product,id=product_id)
     except Exception:
-        product = next((item for item in FALLBACK_PRODUCTS if item["id"] == product_id), FALLBACK_PRODUCTS[0])
-
+        product = next((item for item in safe_products() if item.id == product_id), safe_products()[0])
+    breadcrumbs = build_breadcrumbs(
+        ("首页", "shop:home"),
+        (
+            product.category.name
+            if hasattr(product, "category") and product.category
+            else "商品分类",
+            "shop:category"
+        ),
+        (product.name, None)
+    )
     context = {
         "product": product,
         "related_products": safe_products(5),
+        "breadcrumbs": breadcrumbs
     }
-    return render(request, "product_detail.html", context)
+
+    return render(
+        request,
+        "product_detail.html",
+        context
+    )
 
 
 def cart(request):
