@@ -30,14 +30,6 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
-# INSTALLED_APPS = [
-#     "django.contrib.admin",
-#     "django.contrib.auth",
-#     "django.contrib.contenttypes",
-#     "django.contrib.sessions",
-#     "django.contrib.messages",
-#     "django.contrib.staticfiles",
-# ]
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -54,8 +46,15 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.alipay',
     'shop'
 ]
-SITE_ID = 1
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+EMAIL_BACKEND = ("django.core.mail.backends.console.EmailBackend")
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -69,7 +68,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "shoplite.urls"
-
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -89,16 +87,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "shoplite.wsgi.application"
 
-#数据库修改
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
 DATABASES = {
     'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -132,15 +121,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-# LANGUAGE_CODE = "en-us"
-#
-# TIME_ZONE = "UTC"
 #  调整为中文
 LANGUAGE_CODE = 'zh-hans' #'en-us'
 TIME_ZONE = 'Asia/Shanghai' #'UTC'
 
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -152,6 +137,14 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"
+
+ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "username"
+ACCOUNT_EMAIL_VERIFICATION = "none"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

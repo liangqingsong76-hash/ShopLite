@@ -3,15 +3,16 @@
 {% block title %}ShopLite - 商品分类{% endblock %}
 
 {% block content %}
-    <div class="crumb">{% for item in breadcrumbs %}
+<div class="crumb">
+    {% for item in breadcrumbs %}
         {% if item.url %}
             <a href="{% url item.url %}">{{ item.name }}</a>
         {% else %}
             <span>{{ item.name }}</span>
         {% endif %}
-            {% if not forloop.last %}<span>›</span>{% endif %}
-        {% endfor %}
-    </div>
+        {% if not forloop.last %}<span>›</span>{% endif %}
+    {% endfor %}
+</div>
 
 <section style="display: grid; grid-template-columns: 230px 1fr; gap: 32px;">
     <aside>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopLite - 登录</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f7f7f6;
+            color: #111;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            padding: 28px;
+        }
+        a { color: inherit; text-decoration: none; }
+        .login-shell {
+            width: min(1380px, 100%);
+            min-height: 760px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: #fff;
+            border: 1px solid #e8e6e3;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(20, 20, 20, 0.08);
+            overflow: hidden;
+        }
+        .visual-panel {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 42px;
+            background:
+                radial-gradient(circle at 70% 26%, rgba(255,255,255,0.9), rgba(255,255,255,0) 20%),
+                linear-gradient(135deg, #efe5d9, #fbfaf7);
+        }
+        .brand { font-size: 30px; font-weight: 800; }
+        .visual-copy { margin: auto 0; padding-left: 40px; }
+        .visual-copy h1 { margin: 0 0 14px; font-size: 38px; }
+        .visual-copy p { margin: 0; font-size: 22px; color: #333; }
+        .scene {
+            position: relative;
+            height: 360px;
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0));
+        }
+        .lamp {
+            position: absolute;
+            right: 86px;
+            top: 10px;
+            width: 150px;
+            height: 70px;
+            border-radius: 0 0 80px 80px;
+            background: #ded3c4;
+            box-shadow: inset 0 -12px 18px rgba(255,255,255,0.6);
+        }
+        .desk {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 56px;
+            height: 34px;
+            background: #b9844f;
+            border-radius: 3px;
+        }
+        .vase {
+            position: absolute;
+            left: 80px;
+            bottom: 90px;
+            width: 76px;
+            height: 140px;
+            border-radius: 38px 38px 16px 16px;
+            background: #e7dfd2;
+        }
+        .cup {
+            position: absolute;
+            left: 250px;
+            bottom: 92px;
+            width: 84px;
+            height: 76px;
+            border-radius: 0 0 28px 28px;
+            background: #b79a78;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(0,0,0,0.08);
+        }
+        .feature strong { display: block; margin-bottom: 4px; }
+        .feature span { color: #777; font-size: 13px; }
+        .form-panel { padding: 42px 64px; display: flex; flex-direction: column; }
+        .top-link { text-align: right; color: #777; }
+        .top-link a { color: #a87951; font-weight: 700; }
+        .form-box { width: min(520px, 100%); margin: auto auto 0; }
+        .form-box h2 { margin: 0 0 8px; font-size: 34px; }
+        .form-box p { margin: 0 0 28px; color: #666; }
+        .field { margin-bottom: 18px; }
+        .field input {
+            width: 100%;
+            height: 58px;
+            border: 1px solid #e2e2e2;
+            border-radius: 10px;
+            outline: 0;
+            padding: 0 18px;
+            background: #fff;
+            font-size: 16px;
+        }
+        .field input:focus { border-color: #bd8a5e; box-shadow: 0 0 0 3px rgba(189,138,94,0.12); }
+        .form-error {
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #fff0f0;
+            color: #c72d2d;
+            font-size: 14px;
+        }
+        .options-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 6px 0 26px;
+            color: #555;
+        }
+        .submit {
+            width: 100%;
+            height: 58px;
+            border: 0;
+            border-radius: 10px;
+            background: #111;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .social-divider {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin: 32px 0 20px;
+            color: #888;
+        }
+        .social-divider::before, .social-divider::after { content: ""; flex: 1; height: 1px; background: #e8e6e3; }
+        .social-icons { display: flex; justify-content: center; gap: 24px; }
+        .social-icons a {
+            width: 56px;
+            height: 56px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #e8e6e3;
+            border-radius: 50%;
+            font-weight: 800;
+        }
+        .agreement { margin-top: auto; text-align: center; color: #999; font-size: 13px; }
+        .agreement a { color: #a87951; }
+
+        @media (max-width: 900px) {
+            .login-shell { grid-template-columns: 1fr; min-height: 0; }
+            .visual-panel { min-height: 380px; }
+            .form-panel { padding: 32px 24px; }
+            .visual-copy { padding-left: 0; }
+            .scene { height: 240px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-shell">
+        <section class="visual-panel">
+            <div class="brand">ShopLite</div>
+            <div class="visual-copy">
+                <h1>发现品质生活</h1>
+                <p>精选好物，简约 · 实用 · 高颜值</p>
+            </div>
+            <div class="scene" aria-hidden="true">
+                <div class="lamp"></div>
+                <div class="vase"></div>
+                <div class="cup"></div>
+                <div class="desk"></div>
+            </div>
+            <div class="features">
+                <div class="feature"><strong>正品保障</strong><span>官方正品</span></div>
+                <div class="feature"><strong>7天无理由退换</strong><span>购物无忧</span></div>
+                <div class="feature"><strong>极速配送</strong><span>快速送达</span></div>
+            </div>
+        </section>
+
+        <section class="form-panel">
+            <div class="top-link">还没有账号？ <a href="{% url 'account_signup' %}">立即注册</a></div>
+
+            <div class="form-box">
+                <h2>欢迎回来</h2>
+                <p>登录您的账号，发现更多精彩</p>
+
+                {% if form.non_field_errors %}
+                    <div class="form-error">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <form method="post" action="{% url 'account_login' %}">
+                    {% csrf_token %}
+                    {% if redirect_field_value %}
+                        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                    {% endif %}
+
+                    <div class="field">
+                        <input name="login" type="text" autocomplete="username" placeholder="手机号 / 邮箱 / 用户名" required>
+                    </div>
+                    <div class="field">
+                        <input name="password" type="password" autocomplete="current-password" placeholder="密码" required>
+                    </div>
+
+                    <div class="options-row">
+                        <label><input name="remember" type="checkbox"> 记住我</label>
+                        <a href="{% url 'account_reset_password' %}">忘记密码？</a>
+                    </div>
+
+                    <button class="submit" type="submit">登录</button>
+                </form>
+
+                <div class="social-divider">或使用以下方式登录</div>
+                <div class="social-icons">
+                    <a href="#" aria-label="微信登录">微</a>
+                    <a href="#" aria-label="支付宝登录">支</a>
+                    <a href="#" aria-label="Apple 登录"></a>
+                </div>
+            </div>
+
+            <div class="agreement">
+                登录即表示您同意 ShopLite 的 <a href="#">《用户协议》</a> 和 <a href="#">《隐私政策》</a>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

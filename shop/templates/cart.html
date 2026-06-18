@@ -4,31 +4,15 @@
 
 {% block extra_head %}
 <style>
-    .cart-layout {
-        display: grid;
-        grid-template-columns: 1fr 380px;
-        gap: 34px;
-    }
-
-    .cart-toolbar,
-    .cart-item {
+    .cart-layout { display: grid; grid-template-columns: 1fr 380px; gap: 34px; }
+    .cart-toolbar, .cart-item {
         display: grid;
         grid-template-columns: 34px 150px 1fr 130px 140px 110px;
         align-items: center;
         gap: 22px;
     }
-
-    .cart-toolbar {
-        padding: 0 0 20px;
-        border-bottom: 1px solid var(--line);
-        color: var(--muted);
-    }
-
-    .cart-item {
-        padding: 24px 0;
-        border-bottom: 1px solid var(--line);
-    }
-
+    .cart-toolbar { padding: 0 0 20px; border-bottom: 1px solid var(--line); color: var(--muted); }
+    .cart-item { padding: 24px 0; border-bottom: 1px solid var(--line); }
     .check {
         width: 20px;
         height: 20px;
@@ -39,7 +23,6 @@
         color: #fff;
         font-size: 14px;
     }
-
     .qty-small {
         display: inline-grid;
         grid-template-columns: 36px 44px 36px;
@@ -49,57 +32,30 @@
         overflow: hidden;
         text-align: center;
     }
-
-    .qty-small span {
-        display: grid;
-        place-items: center;
-        border-right: 1px solid var(--line);
-    }
-
+    .qty-small span { display: grid; place-items: center; border-right: 1px solid var(--line); }
     .qty-small span:last-child { border-right: 0; }
-
-    .summary,
-    .service-panel {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 28px 32px;
-    }
-
-    .summary-row {
-        display: flex;
-        justify-content: space-between;
-        margin: 22px 0;
-    }
-
-    .summary-total {
-        border-top: 1px solid var(--line);
-        padding-top: 24px;
-        font-size: 24px;
-        font-weight: 800;
-    }
-
-    .service-panel {
-        margin-top: 14px;
-        display: grid;
-        gap: 22px;
-    }
-
+    .summary, .service-panel { border: 1px solid var(--line); border-radius: 8px; padding: 28px 32px; }
+    .summary-row { display: flex; justify-content: space-between; margin: 22px 0; }
+    .summary-total { border-top: 1px solid var(--line); padding-top: 24px; font-size: 24px; font-weight: 800; }
+    .service-panel { margin-top: 14px; display: grid; gap: 22px; }
     .coupon-strip {
-        height: 50px;
+        min-height: 50px;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 18px;
         padding: 0 24px;
         background: #fafafa;
         border-radius: 8px;
         margin-top: 28px;
     }
+    .link-button { border: 0; background: transparent; color: var(--muted); padding: 0; }
 
     @media (max-width: 1100px) {
         .cart-layout { grid-template-columns: 1fr; }
         .cart-toolbar { display: none; }
         .cart-item { grid-template-columns: 28px 110px 1fr; }
-        .cart-item > div:nth-child(n+4) { grid-column: 3; }
+        .cart-item > div:nth-child(n+4), .cart-item > strong, .cart-item > form { grid-column: 3; }
     }
 </style>
 {% endblock %}
@@ -129,12 +85,20 @@
                 </a>
                 <div>
                     <h3 style="margin: 0 0 10px;">{{ item.product.name }}</h3>
-                    <div class="muted">颜色：米白色</div>
+                    <div class="muted">颜色：{{ item.color|default:"米白色" }}</div>
                     <div class="muted" style="margin-top: 10px;">7天无理由退换</div>
                 </div>
                 <strong>¥{{ item.product.price }}</strong>
-                <span class="qty-small"><span>−</span><span>{{ item.quantity }}</span><span>+</span></span>
-                <strong>¥{{ item.product.price }}</strong>
+                <span class="qty-small"><span>-</span><span>{{ item.quantity }}</span><span>+</span></span>
+                <div>
+                    <strong>¥{{ item.subtotal|default:item.product.price }}</strong>
+                    {% if item.id %}
+                        <form method="post" action="{% url 'shop:remove_cart_item' item.id %}" style="margin-top: 12px;">
+                            {% csrf_token %}
+                            <button class="link-button" type="submit">删除</button>
+                        </form>
+                    {% endif %}
+                </div>
             </article>
         {% empty %}
             <div class="empty-note">购物车还是空的，先去挑几件喜欢的商品吧。</div>
@@ -156,7 +120,10 @@
                     <div class="product-name">{{ product.name }}</div>
                     <div class="amount-row">
                         <span class="price">¥{{ product.price }}</span>
-                        <a class="round-add" href="{% url 'shop:cart' %}">+</a>
+                        <form method="post" action="{% url 'shop:add_to_cart' product.id %}">
+                            {% csrf_token %}
+                            <button class="round-add" type="submit">+</button>
+                        </form>
                     </div>
                 </article>
             {% endfor %}
@@ -172,22 +139,22 @@
         <div class="summary">
             <h2 style="margin-top: 0;">订单结算</h2>
             <div class="summary-row"><span>商品金额</span><strong>¥{{ subtotal }}</strong></div>
-            <div class="summary-row"><span>优惠券</span><strong class="price-red">− ¥{{ discount }}</strong></div>
+            <div class="summary-row"><span>优惠券</span><strong class="price-red">- ¥{{ discount }}</strong></div>
             <div class="summary-row"><span>运费</span><strong>免运费</strong></div>
             <div class="summary-row summary-total"><span>合计</span><span class="price-red">¥{{ total }}</span></div>
             <a class="btn btn-primary" style="width: 100%; margin-top: 8px;" href="#">去结算</a>
-            <p class="muted" style="text-align: center;">安全支付｜100% 正品保障</p>
+            <p class="muted" style="text-align: center;">安全支付 | 100% 正品保障</p>
         </div>
 
         <div class="service-panel">
             <strong>正品保障</strong>
             <span class="muted">官方正品，品质保证</span>
             <strong>七天无理由退换</strong>
-            <span class="muted">支持7天无理由退换货</span>
+            <span class="muted">支持 7 天无理由退换货</span>
             <strong>极速配送</strong>
             <span class="muted">多仓直发，快速送达</span>
             <strong>客服支持</strong>
-            <span class="muted">7x24小时在线服务</span>
+            <span class="muted">7x24 小时在线服务</span>
         </div>
     </aside>
 </section>
