@@ -62,6 +62,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ("status", "created_at")
     search_fields = ("order_no", "user__username")
     inlines = (OrderItemInline,)
+    exclude = []
 
 
 @admin.register(Favorite)

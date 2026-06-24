@@ -31,6 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # 管理员界面优化
+    'simpleui',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -150,3 +152,14 @@ ACCOUNT_EMAIL_VERIFICATION = "none"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# SimpleUI配置
+
+SIMPLEUI_HOME_INFO = False
+SIMPLEUI_HOME_QUICK = False
+SIMPLEUI_HOME_PAGE = ''
+SIMPLEUI_HOME_TITLE = 'ShopLite管理后台'
+SIMPLEUI_DEFAULT_THEME = 'simpleui.css'
+SIMPLEUI_LOGO = ''
+

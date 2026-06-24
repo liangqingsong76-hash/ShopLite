@@ -64,6 +64,9 @@
         background: #d8d1c7;
         box-shadow: inset 0 -10px 16px rgba(255,255,255,0.55);
     }
+    .hero-dots { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; }
+    .hero-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(0,0,0,0.2); }
+    .hero-dot.active { background: rgba(0,0,0,0.6); width: 24px; border-radius: 999px; }
     .category-bubbles {
         grid-column: 2;
         display: grid;
@@ -73,7 +76,25 @@
         text-align: center;
     }
     .bubble { display: grid; gap: 10px; justify-items: center; font-weight: 600; }
-    .bubble .product-fallback { width: 68px; background: linear-gradient(145deg, #e7e1d8, #fff); }
+    .bubble-icon {
+        width: 68px;
+        height: 68px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #f5f5f3, #e8e6e3);
+        font-size: 32px;
+        font-weight: bold;
+    }
+    .more-category {
+        width: 68px;
+        height: 68px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #f5f5f3, #e8e6e3);
+        font-size: 24px;
+    }
 
     @media (max-width: 1100px) {
         .home-layout { grid-template-columns: 1fr; }
@@ -89,16 +110,20 @@
     <aside class="category-list">
         {% for category in categories %}
             <a class="category-item" href="{% url 'shop:category' %}?category={{ category.name }}">
-                <span class="category-name"><span class="tiny-icon">□</span>{{ category.name }}</span>
-                <span>›</span>
+                <span class="category-name"><span class="tiny-icon">o</span>{{ category.name }}</span>
+                <span>&gt;</span>
             </a>
         {% endfor %}
+        <a class="category-item" href="{% url 'shop:category' %}">
+            <span class="category-name"><span class="tiny-icon">...</span>更多分类</span>
+            <span>&gt;</span>
+        </a>
     </aside>
 
     <div class="hero">
         <div>
             <h1>发现品质生活</h1>
-            <strong>精选好物：简约 · 实用 · 高颜值</strong>
+            <strong>精选好物：简约 / 实用 / 高颜值</strong>
             <a class="btn btn-primary" href="{% url 'shop:category' %}">立即选购</a>
         </div>
         <div class="hero-scene" aria-hidden="true">
@@ -107,46 +132,63 @@
             <div class="table"></div>
             <div class="vase"></div>
         </div>
+        <div class="hero-dots">
+            <span class="hero-dot active"></span>
+            <span class="hero-dot"></span>
+            <span class="hero-dot"></span>
+            <span class="hero-dot"></span>
+        </div>
     </div>
 
     <div class="category-bubbles">
-        {% for category in categories|slice:":7" %}
+        {% for category in categories|slice:":6" %}
             <a class="bubble" href="{% url 'shop:category' %}?category={{ category.name }}">
-                <span class="product-fallback"></span>
+                <span class="bubble-icon">O</span>
                 <span>{{ category.name }}</span>
             </a>
         {% endfor %}
+        <a class="bubble" href="{% url 'shop:category' %}">
+            <span class="more-category">::</span>
+            <span>更多分类</span>
+        </a>
     </div>
 </section>
 
 <section>
     <div class="section-title">
         <h2>热门商品</h2>
-        <a class="muted" href="{% url 'shop:category' %}">查看全部 ›</a>
+        <a class="muted" href="{% url 'shop:category' %}">查看全部 &gt;</a>
     </div>
     <div class="product-grid">
         {% for product in hot_products %}
             <article class="product-card">
-                <a class="product-image" href="{% url 'shop:product_detail' product.id %}">
-                    {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                    {% else %}
-                        <span class="product-fallback"></span>
-                    {% endif %}
-                </a>
-                <div class="product-name">{{ product.name }}</div>
-                <div class="amount-row">
-                    <div>
-                        <span class="price">¥{{ product.price }}</span>
-                        {% if product.original_price %}
-                            <span class="old-price">¥{{ product.original_price }}</span>
+                <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
+                    <div class="product-image">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        {% else %}
+                            <span class="product-fallback"></span>
                         {% endif %}
                     </div>
-                    <form method="post" action="{% url 'shop:add_to_cart' product.id %}">
-                        {% csrf_token %}
-                        <button class="round-add" type="submit" aria-label="加入购物车">+</button>
-                    </form>
-                </div>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-meta">
+                        <span class="stars">*****</span>
+                        <span>{{ product.rating|default:"4.8" }}</span>
+                        <span>已售 {{ product.sales|default:"1.2万" }}</span>
+                    </div>
+                    <div class="amount-row">
+                        <div>
+                            <span class="price">¥{{ product.price }}</span>
+                            {% if product.original_price %}
+                                <span class="old-price">¥{{ product.original_price }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                <form method="post" action="{% url 'shop:add_to_cart' product.id %}" style="margin-top: -36px; text-align: right;">
+                    {% csrf_token %}
+                    <button class="round-add" type="submit" aria-label="加入购物车">+</button>
+                </form>
             </article>
         {% endfor %}
     </div>

@@ -32,7 +32,7 @@
         overflow: hidden;
         text-align: center;
     }
-    .qty-small span { display: grid; place-items: center; border-right: 1px solid var(--line); }
+    .qty-small span { display: grid; place-items: center; border-right: 1px solid var(--line); cursor: pointer; }
     .qty-small span:last-child { border-right: 0; }
     .summary, .service-panel { border: 1px solid var(--line); border-radius: 8px; padding: 28px 32px; }
     .summary-row { display: flex; justify-content: space-between; margin: 22px 0; }
@@ -50,6 +50,7 @@
         margin-top: 28px;
     }
     .link-button { border: 0; background: transparent; color: var(--muted); padding: 0; }
+    .toolbar-actions { display: flex; gap: 24px; color: var(--muted); }
 
     @media (max-width: 1100px) {
         .cart-layout { grid-template-columns: 1fr; }
@@ -63,7 +64,13 @@
 {% block content %}
 <section class="cart-layout">
     <div>
-        <h1 style="margin: 0 0 28px;">购物车（{{ cart_items|length }}）</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
+            <h1 style="margin: 0;">购物车（{{ cart_items|length }}）</h1>
+            <div class="toolbar-actions">
+                <a href="#">删除选中</a>
+                <a href="#">移入收藏夹</a>
+            </div>
+        </div>
         <div class="cart-toolbar">
             <span class="check">✓</span>
             <span>全选</span>
@@ -110,21 +117,23 @@
         <div class="product-grid">
             {% for product in recommendations %}
                 <article class="product-card">
-                    <a class="product-image" href="{% url 'shop:product_detail' product.id %}">
-                        {% if product.image %}
-                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                        {% else %}
-                            <span class="product-fallback"></span>
-                        {% endif %}
+                    <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
+                        <div class="product-image">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                            {% else %}
+                                <span class="product-fallback"></span>
+                            {% endif %}
+                        </div>
+                        <div class="product-name">{{ product.name }}</div>
+                        <div class="amount-row">
+                            <span class="price">¥{{ product.price }}</span>
+                        </div>
                     </a>
-                    <div class="product-name">{{ product.name }}</div>
-                    <div class="amount-row">
-                        <span class="price">¥{{ product.price }}</span>
-                        <form method="post" action="{% url 'shop:add_to_cart' product.id %}">
-                            {% csrf_token %}
-                            <button class="round-add" type="submit">+</button>
-                        </form>
-                    </div>
+                    <form method="post" action="{% url 'shop:add_to_cart' product.id %}" style="margin-top: -36px; text-align: right;">
+                        {% csrf_token %}
+                        <button class="round-add" type="submit">+</button>
+                    </form>
                 </article>
             {% endfor %}
         </div>
@@ -138,23 +147,47 @@
     <aside>
         <div class="summary">
             <h2 style="margin-top: 0;">订单结算</h2>
-            <div class="summary-row"><span>商品金额</span><strong>¥{{ subtotal }}</strong></div>
-            <div class="summary-row"><span>优惠券</span><strong class="price-red">- ¥{{ discount }}</strong></div>
+            <div class="summary-row"><span>商品金额（{{ cart_items|length }}件）</span><strong>¥{{ subtotal }}</strong></div>
+            <div class="summary-row">
+                <span>优惠券</span>
+                <strong class="price-red">- ¥{{ discount }}</strong>
+                <a href="#" style="color: var(--accent); font-size: 14px;">›</a>
+            </div>
             <div class="summary-row"><span>运费</span><strong>免运费</strong></div>
             <div class="summary-row summary-total"><span>合计</span><span class="price-red">¥{{ total }}</span></div>
-            <a class="btn btn-primary" style="width: 100%; margin-top: 8px;" href="#">去结算</a>
-            <p class="muted" style="text-align: center;">安全支付 | 100% 正品保障</p>
+            <a class="btn btn-primary" style="width: 100%; margin-top: 8px;" href="#">去结算（{{ cart_items|length }}）</a>
+            <p class="muted" style="text-align: center;">✓ 安全支付 | 100% 正品保障</p>
         </div>
 
         <div class="service-panel">
-            <strong>正品保障</strong>
-            <span class="muted">官方正品，品质保证</span>
-            <strong>七天无理由退换</strong>
-            <span class="muted">支持 7 天无理由退换货</span>
-            <strong>极速配送</strong>
-            <span class="muted">多仓直发，快速送达</span>
-            <strong>客服支持</strong>
-            <span class="muted">7x24 小时在线服务</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 18px;">✓</span>
+                <div>
+                    <strong>正品保障</strong>
+                    <span class="muted">官方正品，品质保证</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 18px;">✓</span>
+                <div>
+                    <strong>七天无理由退换</strong>
+                    <span class="muted">支持 7 天无理由退换货</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 18px;">✓</span>
+                <div>
+                    <strong>极速配送</strong>
+                    <span class="muted">多仓直发，快速送达</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 18px;">✓</span>
+                <div>
+                    <strong>客服支持</strong>
+                    <span class="muted">7x24 小时在线服务</span>
+                </div>
+            </div>
         </div>
     </aside>
 </section>

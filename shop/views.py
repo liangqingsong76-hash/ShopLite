@@ -45,6 +45,17 @@ def safe_categories():
     except Exception:
         return FALLBACK_CATEGORIES
 
+CATEGORY_ICONS = {
+    "家居日用": "⌂",
+    "数码家电": "◈",
+    "服饰箱包": "◆",
+    "美妆护肤": "◇",
+    "母婴用品": "◎",
+    "运动户外": "◉",
+    "食品生鲜": "●",
+    "图书文娱": "■",
+}
+
 
 def product_queryset():
     return Product.objects.select_related("category").filter(is_active=True)
@@ -93,7 +104,7 @@ def base_context(request):
     }
 
 
-@login_required
+@login_required(login_url="account_login")
 def home(request):
     context = {
         **base_context(request),
@@ -103,23 +114,105 @@ def home(request):
     return render(request, "home.html", context)
 
 
+@login_required(login_url="account_login")
+def new_products(request):
+    products = safe_products(new=True)
+    context = {
+        **base_context(request),
+        "products": products,
+    }
+    return render(request, "new_products.html", context)
+
+
+@login_required(login_url="account_login")
+def hot_products(request):
+    products = safe_products(hot=True)
+    context = {
+        **base_context(request),
+        "products": products,
+    }
+    return render(request, "hot_products.html", context)
+
+
+@login_required(login_url="account_login")
+def brand_page(request):
+    brands = [
+        {"name": "米家", "count": 156},
+        {"name": "宜家", "count": 234},
+        {"name": "无印良品", "count": 89},
+        {"name": "小熊", "count": 67},
+        {"name": "飞利浦", "count": 108},
+        {"name": "苏泊尔", "count": 95},
+    ]
+    products = safe_products(recommended=True)
+    context = {
+        **base_context(request),
+        "brands": brands,
+        "products": products,
+    }
+    return render(request, "brand_page.html", context)
+
+
+@login_required(login_url="account_login")
 def category(request):
-    active_category = request.GET.get("category", "家居日用")
+    active_category = request.GET.get("category", "")
     keyword = request.GET.get("q", "").strip()
-    products = safe_products(category_name=active_category if not keyword else None, keyword=keyword or None)
+    sort_type = request.GET.get("sort", "")
+    filter_type = request.GET.get("filter", "")
+    
+    page_title = "商品分类"
+    breadcrumbs = [{"name": "首页", "url": "shop:home"}]
+    
+    if sort_type == "new":
+        page_title = "新品上市"
+        products = safe_products(new=True)
+        breadcrumbs.append({"name": "新品"})
+    elif sort_type == "hot":
+        page_title = "热门商品"
+        products = safe_products(hot=True)
+        breadcrumbs.append({"name": "热门"})
+    elif filter_type == "brand":
+        page_title = "品牌馆"
+        products = safe_products(recommended=True)
+        breadcrumbs.append({"name": "品牌"})
+    elif keyword:
+        page_title = f"搜索结果: {keyword}"
+        products = safe_products(keyword=keyword)
+        breadcrumbs.append({"name": f"搜索: {keyword}"})
+    else:
+        active_category = active_category or "家居日用"
+        page_title = active_category
+        products = safe_products(category_name=active_category)
+        breadcrumbs.append({"name": active_category})
+    
+    brands = [
+        {"name": "米家", "count": 156},
+        {"name": "宜家", "count": 234},
+        {"name": "无印良品", "count": 89},
+        {"name": "小熊", "count": 67},
+        {"name": "飞利浦", "count": 108},
+        {"name": "苏泊尔", "count": 95},
+    ]
+    
     context = {
         **base_context(request),
         "categories": safe_categories(),
         "products": products,
         "active_category": active_category,
         "keyword": keyword,
-        "breadcrumbs": [{"name": "首页", "url": "shop:home"}, {"name": active_category}],
+        "page_title": page_title,
+        "breadcrumbs": breadcrumbs,
+        "current_sort": sort_type,
+        "current_filter": filter_type,
+        "brands": brands,
     }
     return render(request, "category.html", context)
 
 
+@login_required(login_url="account_login")
 def product_detail(request, product_id):
     product = get_product_or_fallback(product_id)
+    product_name = getattr(product, "name", "未知商品")
     context = {
         **base_context(request),
         "product": product,
@@ -127,12 +220,13 @@ def product_detail(request, product_id):
         "breadcrumbs": [
             {"name": "首页", "url": "shop:home"},
             {"name": "家居日用", "url": "shop:category"},
-            {"name": getattr(product, "name", product["name"])},
+            {"name": product_name},
         ],
     }
     return render(request, "product_detail.html", context)
 
 
+@login_required(login_url="account_login")
 def cart(request):
     cart_items = []
     if request.user.is_authenticated:
@@ -160,29 +254,38 @@ def cart(request):
     return render(request, "cart.html", context)
 
 
-@login_required
 def add_to_cart(request, product_id):
-    product = get_object_or_404(Product, id=product_id, is_active=True)
-    quantity = int(request.POST.get("quantity", 1))
-    color = request.POST.get("color", "")
-    item, created = CartItem.objects.get_or_create(
-        user=request.user,
-        product=product,
-        color=color,
-        defaults={"quantity": quantity},
-    )
-    if not created:
-        item.quantity += quantity
-        item.save(update_fields=["quantity", "updated_at"])
+    if not request.user.is_authenticated:
+        return redirect("account_login")
+    
+    try:
+        product = get_object_or_404(Product, id=product_id, is_active=True)
+        quantity = int(request.POST.get("quantity", 1))
+        color = request.POST.get("color", "")
+        item, created = CartItem.objects.get_or_create(
+            user=request.user,
+            product=product,
+            color=color,
+            defaults={"quantity": quantity},
+        )
+        if not created:
+            item.quantity += quantity
+            item.save(update_fields=["quantity", "updated_at"])
+    except Exception:
+        pass
     return redirect("shop:cart")
 
 
-@login_required
 def remove_cart_item(request, item_id):
-    CartItem.objects.filter(id=item_id, user=request.user).delete()
+    if request.user.is_authenticated:
+        try:
+            CartItem.objects.filter(id=item_id, user=request.user).delete()
+        except Exception:
+            pass
     return redirect("shop:cart")
 
 
+@login_required(login_url="account_login")
 def profile(request):
     order_stats = {
         "all": 12,

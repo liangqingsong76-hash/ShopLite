@@ -227,18 +227,18 @@
             <nav class="nav-links" aria-label="主导航">
                 <a class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'shop:home' %}">首页</a>
                 <a class="{% if request.resolver_match.url_name == 'category' %}active{% endif %}" href="{% url 'shop:category' %}">分类</a>
-                <a href="{% url 'shop:category' %}?sort=new">新品</a>
-                <a href="{% url 'shop:category' %}?sort=hot">热门</a>
-                <a href="{% url 'shop:category' %}?filter=brand">品牌</a>
+                <a class="{% if request.resolver_match.url_name == 'new_products' %}active{% endif %}" href="{% url 'shop:new_products' %}">新品</a>
+                <a class="{% if request.resolver_match.url_name == 'hot_products' %}active{% endif %}" href="{% url 'shop:hot_products' %}">热门</a>
+                <a class="{% if request.resolver_match.url_name == 'brand_page' %}active{% endif %}" href="{% url 'shop:brand_page' %}">品牌</a>
             </nav>
             <form class="search-box" action="{% url 'shop:category' %}" method="get">
-                <span aria-hidden="true">⌕</span>
+                <span aria-hidden="true">Q</span>
                 <input name="q" type="search" value="{{ keyword|default:'' }}" placeholder="搜索商品、品牌...">
             </form>
             <div class="header-actions">
-                <a class="icon-link" href="{% url 'shop:profile' %}" aria-label="个人中心">♙</a>
-                <a class="icon-link" href="#" aria-label="收藏">♡</a>
-                <a class="icon-link" href="{% url 'shop:cart' %}" aria-label="购物车">🛒{% if cart_count %}<span class="badge">{{ cart_count }}</span>{% endif %}</a>
+                <a class="icon-link" href="{% url 'shop:profile' %}" aria-label="个人中心">U</a>
+                <a class="icon-link" href="#" aria-label="收藏">H</a>
+                <a class="icon-link" href="{% url 'shop:cart' %}" aria-label="购物车">C{% if cart_count %}<span class="badge">{{ cart_count }}</span>{% endif %}</a>
             </div>
         </header>
         <main class="content">

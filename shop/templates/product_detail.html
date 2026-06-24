@@ -111,32 +111,35 @@
         <div class="product-meta">
             <span class="stars">★★★★★</span>
             <span>{{ product.rating|default:"4.9" }}（{{ product.review_count|default:"128" }} 条评价）</span>
+            <span style="padding: 4px 10px; border-radius: 10px; background: #fff0f0; color: var(--danger); font-size: 12px;">已售 {{ product.sales|default:"100" }}</span>
         </div>
         <div class="detail-price">
             <span class="price price-red">¥{{ product.price }}</span>
             {% if product.original_price %}<span class="old-price">¥{{ product.original_price }}</span>{% endif %}
-            <span style="padding: 6px 10px; border-radius: 6px; background: #fff0f0; color: var(--danger);">已省 ¥100</span>
+            <span style="padding: 6px 10px; border-radius: 6px; background: #fff0f0; color: var(--danger);">已省 ¥{{ product.original_price|default:"100"|add:"-"|add:product.price|default:"100" }}</span>
         </div>
 
-        <strong>颜色：</strong><span style="margin-left: 10px;">米白色</span>
-        <div class="swatches">
-            <span class="swatch" style="background:#d9cbbb;"></span>
-            <span class="swatch" style="background:#d7ddc8;"></span>
-            <span class="swatch" style="background:#111;"></span>
-        </div>
-
-        <form method="post" action="{% url 'shop:add_to_cart' product.id %}">
-            {% csrf_token %}
-            <div>
-                <strong>数量：</strong>
-                <span class="qty"><span>-</span><input name="quantity" value="1" inputmode="numeric"><span>+</span></span>
+        <div style="margin-top: 28px;">
+            <strong>颜色：</strong><span style="margin-left: 10px;">米白色</span>
+            <div class="swatches">
+                <span class="swatch" style="background:#d9cbbb;"></span>
+                <span class="swatch" style="background:#d7ddc8;"></span>
+                <span class="swatch" style="background:#111;"></span>
             </div>
+        </div>
 
-            <div class="detail-actions">
+        <div style="margin-top: 28px;">
+            <strong>数量：</strong>
+            <span class="qty"><span>-</span><input name="quantity" value="1" inputmode="numeric"><span>+</span></span>
+        </div>
+
+        <div class="detail-actions">
+            <form method="post" action="{% url 'shop:add_to_cart' product.id %}">
+                {% csrf_token %}
                 <button class="btn" type="submit">加入购物车</button>
-                <button class="btn btn-primary" type="submit">立即购买</button>
-            </div>
-        </form>
+            </form>
+            <button class="btn btn-primary">立即购买</button>
+        </div>
 
         <div class="service-row">
             <span>正品保障</span>
@@ -162,15 +165,17 @@
     <div class="product-grid">
         {% for item in related_products %}
             <article class="product-card">
-                <a class="product-image" href="{% url 'shop:product_detail' item.id %}">
-                    {% if item.image %}
-                        <img src="{{ item.image.url }}" alt="{{ item.name }}">
-                    {% else %}
-                        <span class="product-fallback"></span>
-                    {% endif %}
+                <a href="{% url 'shop:product_detail' item.id %}" style="display: block;">
+                    <div class="product-image">
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}">
+                        {% else %}
+                            <span class="product-fallback"></span>
+                        {% endif %}
+                    </div>
+                    <div class="product-name">{{ item.name }}</div>
+                    <div class="price">¥{{ item.price }}</div>
                 </a>
-                <div class="product-name">{{ item.name }}</div>
-                <div class="price">¥{{ item.price }}</div>
             </article>
         {% endfor %}
     </div>
