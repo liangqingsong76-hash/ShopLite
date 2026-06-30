@@ -64,6 +64,7 @@
             background: var(--ink);
         }
         .search-box {
+            position: relative;
             height: 44px;
             display: flex;
             align-items: center;
@@ -72,25 +73,128 @@
             background: #f4f4f4;
             border-radius: 22px;
             color: var(--muted);
+            transition: all 0.2s;
+        }
+        .search-box:focus-within {
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            border: 1px solid var(--line);
         }
         .search-box input {
             width: 100%;
             border: 0;
             outline: 0;
             background: transparent;
+            font-size: 14px;
         }
-        .header-actions { display: flex; justify-content: flex-end; gap: 18px; font-size: 24px; }
+        .search-btn {
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .search-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        .search-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+        }
+        .search-dropdown.show {
+            display: block;
+        }
+        .search-group {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--line);
+        }
+        .search-group:last-child {
+            border-bottom: none;
+        }
+        .search-group-title {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        .search-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .search-tag {
+            padding: 6px 12px;
+            background: #f7f7f6;
+            border-radius: 16px;
+            font-size: 13px;
+            color: var(--ink);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .search-tag:hover {
+            background: var(--soft);
+            color: var(--accent);
+        }
+        .search-history {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .search-history-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .search-history-item:hover {
+            background: #f7f7f6;
+        }
+        .search-history-item span:first-child {
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .search-clear {
+            font-size: 12px;
+            color: var(--muted);
+            cursor: pointer;
+            float: right;
+        }
+        .search-clear:hover {
+            color: var(--danger);
+        }
+        .header-actions { display: flex; justify-content: flex-end; gap: 4px; font-size: 20px; }
         .icon-link {
             position: relative;
-            width: 32px;
-            height: 32px;
+            width: 44px;
+            height: 44px;
             display: grid;
             place-items: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--ink);
+        }
+        .icon-link:hover {
+            background: rgba(0,0,0,0.05);
         }
         .badge {
             position: absolute;
-            top: -4px;
-            right: -4px;
+            top: 4px;
+            right: 4px;
             min-width: 18px;
             height: 18px;
             display: grid;
@@ -100,6 +204,147 @@
             background: var(--danger);
             color: #fff;
             font-size: 11px;
+            font-weight: 700;
+        }
+        .action-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+            min-width: 280px;
+        }
+        .action-dropdown.show {
+            display: block;
+        }
+        .dropdown-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--line);
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .dropdown-content {
+            padding: 8px;
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            color: var(--ink);
+        }
+        .dropdown-item:hover {
+            background: #f7f7f6;
+        }
+        .dropdown-item-icon {
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            background: var(--soft);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .dropdown-item-info {
+            flex: 1;
+        }
+        .dropdown-item-title {
+            display: block;
+            font-weight: 500;
+        }
+        .dropdown-item-desc {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .dropdown-divider {
+            height: 1px;
+            background: var(--line);
+            margin: 8px 0;
+        }
+        .dropdown-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--line);
+            text-align: center;
+        }
+        .dropdown-footer a {
+            color: var(--accent);
+            font-size: 14px;
+        }
+        .cart-preview-item {
+            display: flex;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .cart-preview-item:hover {
+            background: #f7f7f6;
+        }
+        .cart-preview-image {
+            width: 50px;
+            height: 50px;
+            background: var(--soft);
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            font-size: 20px;
+        }
+        .cart-preview-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .cart-preview-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .cart-preview-name {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cart-preview-price {
+            display: block;
+            font-size: 14px;
+            color: var(--danger);
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .cart-preview-quantity {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .cart-preview-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-top: 1px solid var(--line);
+            font-weight: 700;
+        }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-size: 16px;
             font-weight: 700;
         }
         .content { padding: 32px; }
@@ -231,19 +476,164 @@
                 <a class="{% if request.resolver_match.url_name == 'hot_products' %}active{% endif %}" href="{% url 'shop:hot_products' %}">热门</a>
                 <a class="{% if request.resolver_match.url_name == 'brand_page' %}active{% endif %}" href="{% url 'shop:brand_page' %}">品牌</a>
             </nav>
-            <form class="search-box" action="{% url 'shop:category' %}" method="get">
+            <form class="search-box" action="{% url 'shop:category' %}" method="get" id="searchForm">
                 <span aria-hidden="true">Q</span>
-                <input name="q" type="search" value="{{ keyword|default:'' }}" placeholder="搜索商品、品牌...">
+                <input name="q" type="search" value="{{ keyword|default:'' }}" placeholder="搜索商品、品牌..." id="searchInput">
+                <button class="search-btn" type="submit">搜索</button>
+                <div class="search-dropdown" id="searchDropdown">
+                    <div class="search-group">
+                        <div class="search-group-title">热门搜索</div>
+                        <div class="search-tags">
+                            <span class="search-tag" onclick="fillSearch('手机')">手机</span>
+                            <span class="search-tag" onclick="fillSearch('电脑')">电脑</span>
+                            <span class="search-tag" onclick="fillSearch('耳机')">耳机</span>
+                            <span class="search-tag" onclick="fillSearch('衣服')">衣服</span>
+                            <span class="search-tag" onclick="fillSearch('化妆品')">化妆品</span>
+                            <span class="search-tag" onclick="fillSearch('家居')">家居</span>
+                        </div>
+                    </div>
+                    <div class="search-group">
+                        <div class="search-group-title">搜索历史</div>
+                        <div class="search-history" id="searchHistory">
+                        </div>
+                    </div>
+                </div>
             </form>
             <div class="header-actions">
-                <a class="icon-link" href="{% url 'shop:profile' %}" aria-label="个人中心">U</a>
-                <a class="icon-link" href="#" aria-label="收藏">H</a>
-                <a class="icon-link" href="{% url 'shop:cart' %}" aria-label="购物车">C{% if cart_count %}<span class="badge">{{ cart_count }}</span>{% endif %}</a>
+                <a class="icon-link" href="{% url 'shop:profile' %}" aria-label="个人中心">
+                    <div class="user-avatar">U</div>
+                </a>
+                
+                <div class="icon-link" id="notifyAction" onclick="toggleDropdown('notifyDropdown')">
+                    <span>N</span>
+                    <span class="badge">3</span>
+                    <div class="action-dropdown" id="notifyDropdown">
+                        <div class="dropdown-header">消息通知</div>
+                        <div class="dropdown-content">
+                            <a href="{% url 'shop:notifications' %}" class="dropdown-item">
+                                <span class="dropdown-item-icon">O</span>
+                                <span class="dropdown-item-info">
+                                    <span class="dropdown-item-title">订单已发货</span>
+                                    <span class="dropdown-item-desc">您的订单已发出，预计3天送达</span>
+                                </span>
+                            </a>
+                            <a href="{% url 'shop:notifications' %}" class="dropdown-item">
+                                <span class="dropdown-item-icon">P</span>
+                                <span class="dropdown-item-info">
+                                    <span class="dropdown-item-title">商品降价提醒</span>
+                                    <span class="dropdown-item-desc">您关注的商品降价了</span>
+                                </span>
+                            </a>
+                            <a href="{% url 'shop:notifications' %}" class="dropdown-item">
+                                <span class="dropdown-item-icon">C</span>
+                                <span class="dropdown-item-info">
+                                    <span class="dropdown-item-title">优惠券到账</span>
+                                    <span class="dropdown-item-desc">新用户专属优惠券已发放</span>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="dropdown-footer">
+                            <a href="{% url 'shop:notifications' %}">查看全部消息</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <a class="icon-link" href="{% url 'shop:cart' %}" aria-label="购物车">
+                    <span>C</span>
+                    {% if cart_count %}<span class="badge">{{ cart_count }}</span>{% endif %}
+                </a>
             </div>
         </header>
         <main class="content">
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const searchDropdown = document.getElementById('searchDropdown');
+        const searchForm = document.getElementById('searchForm');
+        const searchHistory = document.getElementById('searchHistory');
+
+        function showDropdown() {
+            searchDropdown.classList.add('show');
+            loadHistory();
+        }
+
+        function hideDropdown() {
+            searchDropdown.classList.remove('show');
+        }
+
+        function loadHistory() {
+            const history = localStorage.getItem('searchHistory');
+            if (history) {
+                const items = JSON.parse(history);
+                if (items.length > 0) {
+                    searchHistory.innerHTML = items.map(item => 
+                        `<div class="search-history-item" onclick="fillSearch('${item}')">
+                            <span>Q</span>
+                            <span>${item}</span>
+                        </div>`
+                    ).join('');
+                } else {
+                    searchHistory.innerHTML = '<div style="color: var(--muted); font-size: 13px; padding: 8px 12px;">暂无搜索记录</div>';
+                }
+            } else {
+                searchHistory.innerHTML = '<div style="color: var(--muted); font-size: 13px; padding: 8px 12px;">暂无搜索记录</div>';
+            }
+        }
+
+        function fillSearch(keyword) {
+            searchInput.value = keyword;
+            saveHistory(keyword);
+            searchForm.submit();
+        }
+
+        function saveHistory(keyword) {
+            if (!keyword) return;
+            let history = localStorage.getItem('searchHistory');
+            history = history ? JSON.parse(history) : [];
+            history = history.filter(item => item !== keyword);
+            history.unshift(keyword);
+            if (history.length > 10) history = history.slice(0, 10);
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+        }
+
+        searchInput.addEventListener('focus', showDropdown);
+        searchInput.addEventListener('click', showDropdown);
+
+        document.addEventListener('click', function(e) {
+            if (!searchForm.contains(e.target)) {
+                hideDropdown();
+            }
+        });
+
+        searchForm.addEventListener('submit', function(e) {
+            const keyword = searchInput.value.trim();
+            if (keyword) {
+                saveHistory(keyword);
+            }
+        });
+
+        function toggleDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            const allDropdowns = document.querySelectorAll('.action-dropdown');
+            
+            allDropdowns.forEach(d => {
+                if (d.id !== dropdownId) {
+                    d.classList.remove('show');
+                }
+            });
+            
+            dropdown.classList.toggle('show');
+        }
+
+        document.addEventListener('click', function(e) {
+            const headerActions = document.querySelector('.header-actions');
+            if (!headerActions.contains(e.target)) {
+                document.querySelectorAll('.action-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
+    </script>
 </body>
 </html>

@@ -54,6 +54,61 @@
         font-size: 12px;
         border-radius: 4px;
     }
+    .category-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        border-radius: 8px;
+        color: var(--ink);
+        transition: all 0.2s;
+    }
+    .category-item:hover {
+        background: rgba(0,0,0,0.03);
+    }
+    .category-item.active {
+        background: var(--primary);
+        color: #fff;
+    }
+    .category-item.active .tiny-icon {
+        color: #fff;
+    }
+    .subcategories {
+        padding-left: 30px;
+        margin-bottom: 8px;
+        display: none;
+    }
+    .subcategories.show {
+        display: block;
+    }
+    .subcategory-item {
+        display: block;
+        padding: 6px 14px;
+        font-size: 14px;
+        color: var(--muted);
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .subcategory-item:hover {
+        color: var(--ink);
+        background: rgba(0,0,0,0.03);
+    }
+    .subcategory-item.active {
+        color: var(--primary);
+        font-weight: 500;
+    }
+    .category-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .expand-icon {
+        font-size: 10px;
+        transition: transform 0.2s;
+    }
+    .category-item.active .expand-icon {
+        transform: rotate(90deg);
+    }
 </style>
 {% endblock %}
 
@@ -118,15 +173,22 @@
             <h3 style="margin: 0 0 14px;">全部分类</h3>
             <div class="category-list">
                 {% for category in categories %}
-                    <a class="category-item {% if category.name == active_category %}active{% endif %}" href="{% url 'shop:category' %}?category={{ category.name }}">
-                        <span class="category-name"><span class="tiny-icon">o</span>{{ category.name }}</span>
-                        <span>&gt;</span>
-                    </a>
+                    <div>
+                        <a class="category-item {% if category.name == active_category %}active{% endif %}" href="{% url 'shop:category' %}?category={{ category.name }}" onclick="toggleSubcategories(this)">
+                            <span class="category-name"><span class="tiny-icon">o</span>{{ category.name }}</span>
+                            <span class="expand-icon">&gt;</span>
+                        </a>
+                        {% if category.children %}
+                            <div class="subcategories {% if category.name == active_category %}show{% endif %}" id="subcats-{{ category.id }}">
+                                {% for child in category.children %}
+                                    <a class="subcategory-item {% if child.name == active_category %}active{% endif %}" href="{% url 'shop:category' %}?category={{ child.name }}">
+                                        {{ child.name }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
                 {% endfor %}
-                <a class="category-item" href="{% url 'shop:category' %}">
-                    <span class="category-name"><span class="tiny-icon">...</span>更多分类</span>
-                    <span>&gt;</span>
-                </a>
             </div>
         </aside>
 
@@ -135,11 +197,13 @@
                 <div class="filter-row">
                     <strong>子分类：</strong>
                     <button class="pill active">全部</button>
-                    <button class="pill">厨房用品</button>
-                    <button class="pill">收纳整理</button>
-                    <button class="pill">清洁用品</button>
-                    <button class="pill">家纺布艺</button>
-                    <button class="pill">装饰摆件</button>
+                    {% for category in categories %}
+                        {% if category.name == active_category %}
+                            {% for child in category.children %}
+                                <button class="pill">{{ child.name }}</button>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
                     <span style="margin-left: auto;">
                         <span>更多</span>
                         <span style="font-size: 12px; margin-left: 4px;">v</span>
@@ -229,4 +293,13 @@
         </div>
     </section>
 {% endif %}
+
+<script>
+function toggleSubcategories(el) {
+    var next = el.nextElementSibling;
+    if (next && next.classList.contains('subcategories')) {
+        next.classList.toggle('show');
+    }
+}
+</script>
 {% endblock %}

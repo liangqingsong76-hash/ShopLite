@@ -38,9 +38,19 @@ FALLBACK_PRODUCTS = [
 ]
 
 
-def safe_categories():
+def safe_categories(with_children=False):
     try:
         categories = list(Category.objects.filter(is_active=True, parent__isnull=True).order_by("sort_order", "id"))
+        if with_children:
+            category_ids = [cat.id for cat in categories]
+            children = Category.objects.filter(is_active=True, parent_id__in=category_ids).order_by("parent_id", "sort_order")
+            child_map = {}
+            for child in children:
+                if child.parent_id not in child_map:
+                    child_map[child.parent_id] = []
+                child_map[child.parent_id].append(child)
+            for cat in categories:
+                cat.children = child_map.get(cat.id, [])
         return categories or FALLBACK_CATEGORIES
     except Exception:
         return FALLBACK_CATEGORIES
@@ -71,7 +81,15 @@ def safe_products(limit=None, *, hot=False, new=False, recommended=False, catego
         if recommended:
             products = products.filter(is_recommended=True)
         if category_name:
-            products = products.filter(category__name=category_name)
+            try:
+                category = Category.objects.get(name=category_name)
+                if category.parent:
+                    products = products.filter(category__name=category_name)
+                else:
+                    child_ids = list(category.children.values_list("id", flat=True))
+                    products = products.filter(category_id__in=[category.id] + list(child_ids))
+            except Category.DoesNotExist:
+                products = products.filter(category__name=category_name)
         if keyword:
             products = products.filter(name__icontains=keyword)
         products = list(products.order_by("-created_at"))
@@ -99,8 +117,18 @@ def cart_count(request):
 
 
 def base_context(request):
+    cart_items = []
+    cart_total = 0
+    if request.user.is_authenticated:
+        try:
+            cart_items = list(CartItem.objects.select_related("product").filter(user=request.user)[:3])
+            cart_total = sum(item.product.price * item.quantity for item in cart_items)
+        except Exception:
+            pass
     return {
         "cart_count": cart_count(request),
+        "cart_items": cart_items,
+        "cart_total": cart_total,
     }
 
 
@@ -196,7 +224,7 @@ def category(request):
     
     context = {
         **base_context(request),
-        "categories": safe_categories(),
+        "categories": safe_categories(with_children=True),
         "products": products,
         "active_category": active_category,
         "keyword": keyword,
@@ -240,7 +268,10 @@ def cart(request):
         {"product": FALLBACK_PRODUCTS[1], "quantity": 1, "subtotal": FALLBACK_PRODUCTS[1]["price"]},
     ]
     display_items = cart_items or fallback_items
-    subtotal = sum(getattr(item, "subtotal", item["subtotal"]) for item in display_items)
+    subtotal = sum(
+        item.subtotal if hasattr(item, "subtotal") else item.get("subtotal", 0)
+        for item in display_items
+    )
     discount = Decimal("30") if subtotal >= 299 else Decimal("0")
 
     context = {
@@ -314,6 +345,13 @@ def profile(request):
         "order_stats": order_stats,
     }
     return render(request, "profile.html", context)
+
+
+def notifications(request):
+    context = {
+        **base_context(request),
+    }
+    return render(request, "notifications.html", context)
 
 
 def create_checkout_session(request, order_id):
