@@ -54,6 +54,12 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def savings(self):
+        if self.original_price and self.original_price > self.price:
+            return self.original_price - self.price
+        return None
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, verbose_name="商品", on_delete=models.CASCADE, related_name="images")

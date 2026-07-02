@@ -62,6 +62,7 @@
         border-radius: 8px;
         color: var(--ink);
         transition: all 0.2s;
+        text-decoration: none;
     }
     .category-item:hover {
         background: rgba(0,0,0,0.03);
@@ -88,6 +89,7 @@
         color: var(--muted);
         border-radius: 6px;
         transition: all 0.2s;
+        text-decoration: none;
     }
     .subcategory-item:hover {
         color: var(--ink);
@@ -105,10 +107,37 @@
     .expand-icon {
         font-size: 10px;
         transition: transform 0.2s;
+        cursor: pointer;
+        padding: 4px;
     }
     .category-item.active .expand-icon {
         transform: rotate(90deg);
     }
+    .pill {
+        display: inline-block;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 14px;
+        border: 1px solid var(--line);
+        background: #fff;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--ink);
+        transition: all 0.2s;
+    }
+    .pill:hover { border-color: var(--ink); }
+    .pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .filters { margin-bottom: 24px; }
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+        flex-wrap: wrap;
+    }
+    .filter-row strong { min-width: 60px; font-size: 14px; }
+    .empty-note { text-align: center; padding: 40px; color: var(--muted); }
 </style>
 {% endblock %}
 
@@ -116,7 +145,11 @@
 <div class="crumb">
     {% for item in breadcrumbs %}
         {% if item.url %}
-            <a href="{% url item.url %}">{{ item.name }}</a>
+            {% if '/' in item.url %}
+                <a href="{{ item.url }}">{{ item.name }}</a>
+            {% else %}
+                <a href="{% url item.url %}">{{ item.name }}</a>
+            {% endif %}
         {% else %}
             <span>{{ item.name }}</span>
         {% endif %}
@@ -129,11 +162,13 @@
         <h2 style="font-size: 24px; margin: 20px 0 32px;">品牌馆</h2>
         <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px;">
             {% for brand in brands %}
-                <a href="#" class="brand-card">
-                    <div class="brand-icon">B</div>
+                <a href="{% url 'shop:category' %}?brand={{ brand.name }}" class="brand-card">
+                    <div class="brand-icon">{{ brand.name|first }}</div>
                     <div class="brand-name">{{ brand.name }}</div>
                     <div class="brand-count">{{ brand.count }}件商品</div>
                 </a>
+            {% empty %}
+                <div class="empty-note">暂无品牌数据</div>
             {% endfor %}
         </div>
         <h3 style="font-size: 18px; margin: 32px 0 20px;">品牌精选</h3>
@@ -147,11 +182,6 @@
                             {% else %}
                                 <span class="product-fallback"></span>
                             {% endif %}
-                            {% if current_sort == "hot" %}
-                                <span class="hot-badge">HOT</span>
-                            {% elif current_sort == "new" %}
-                                <span class="new-badge">NEW</span>
-                            {% endif %}
                         </div>
                         <div class="product-name">{{ product.name }}</div>
                         <div class="product-meta">
@@ -159,7 +189,7 @@
                             <span>{{ product.rating|default:"4.8" }}</span>
                         </div>
                         <div class="price">¥{{ product.price }}</div>
-                        <div class="muted" style="font-size: 14px;">已售 {{ product.sales|default:"1.2万" }}</div>
+                        <div class="muted" style="font-size: 14px;">已售 {{ product.sales }}</div>
                     </a>
                 </article>
             {% empty %}
@@ -174,14 +204,14 @@
             <div class="category-list">
                 {% for category in categories %}
                     <div>
-                        <a class="category-item {% if category.name == active_category %}active{% endif %}" href="{% url 'shop:category' %}?category={{ category.name }}" onclick="toggleSubcategories(this)">
+                        <a class="category-item {% if category.name == active_category %}active{% endif %}" href="{% url 'shop:category' %}?category={{ category.name }}">
                             <span class="category-name"><span class="tiny-icon">o</span>{{ category.name }}</span>
-                            <span class="expand-icon">&gt;</span>
+                            <span class="expand-icon" onclick="event.preventDefault(); event.stopPropagation(); toggleSubcategories(this)">›</span>
                         </a>
-                        {% if category.children %}
+                        {% if category.subcategories %}
                             <div class="subcategories {% if category.name == active_category %}show{% endif %}" id="subcats-{{ category.id }}">
-                                {% for child in category.children %}
-                                    <a class="subcategory-item {% if child.name == active_category %}active{% endif %}" href="{% url 'shop:category' %}?category={{ child.name }}">
+                                {% for child in category.subcategories %}
+                                    <a class="subcategory-item {% if child.name == active_subcategory %}active{% endif %}" href="{% url 'shop:category' %}?category={{ category.name }}&subcategory={{ child.name }}">
                                         {{ child.name }}
                                     </a>
                                 {% endfor %}
@@ -194,60 +224,52 @@
 
         <div>
             <div class="filters">
+                {% if active_category %}
                 <div class="filter-row">
                     <strong>子分类：</strong>
-                    <button class="pill active">全部</button>
+                    <a class="pill {% if not active_subcategory %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}">全部</a>
                     {% for category in categories %}
                         {% if category.name == active_category %}
-                            {% for child in category.children %}
-                                <button class="pill">{{ child.name }}</button>
+                            {% for child in category.subcategories %}
+                                <a class="pill {% if child.name == active_subcategory %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ child.name }}">{{ child.name }}</a>
                             {% endfor %}
                         {% endif %}
                     {% endfor %}
-                    <span style="margin-left: auto;">
-                        <span>更多</span>
-                        <span style="font-size: 12px; margin-left: 4px;">v</span>
-                    </span>
                 </div>
+                {% endif %}
                 <div class="filter-row">
                     <strong>品牌：</strong>
-                    <button class="pill active">全部</button>
-                    <button class="pill">米家</button>
-                    <button class="pill">宜家</button>
-                    <button class="pill">无印良品</button>
-                    <button class="pill">小熊</button>
-                    <button class="pill">飞利浦</button>
-                    <span style="margin-left: auto;">
-                        <span>更多</span>
-                        <span style="font-size: 12px; margin-left: 4px;">v</span>
-                    </span>
+                    <a class="pill {% if not brand_filter %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}">全部</a>
+                    {% for brand in brands %}
+                        <a class="pill {% if brand.name == brand_filter %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand.name }}">{{ brand.name }}</a>
+                    {% endfor %}
                 </div>
                 <div class="filter-row">
                     <strong>价格：</strong>
-                    <button class="pill active">全部</button>
-                    <button class="pill">0-99元</button>
-                    <button class="pill">100-199元</button>
-                    <button class="pill">200-299元</button>
-                    <button class="pill">300-499元</button>
-                    <button class="pill">500元以上</button>
-                    <div class="price-filter">
-                        <input type="number" placeholder="最低价">
+                    <a class="pill {% if not price_min and not price_max %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}">全部</a>
+                    <a class="pill {% if price_min == '0' and price_max == '99' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=0&price_max=99">0-99元</a>
+                    <a class="pill {% if price_min == '100' and price_max == '199' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=100&price_max=199">100-199元</a>
+                    <a class="pill {% if price_min == '200' and price_max == '299' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=200&price_max=299">200-299元</a>
+                    <a class="pill {% if price_min == '300' and price_max == '499' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=300&price_max=499">300-499元</a>
+                    <a class="pill {% if price_min == '500' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=500">500元以上</a>
+                    <form class="price-filter" method="get" action="{% url 'shop:category' %}">
+                        <input type="hidden" name="category" value="{{ active_category }}">
+                        <input type="hidden" name="subcategory" value="{{ active_subcategory }}">
+                        <input type="hidden" name="brand" value="{{ brand_filter }}">
+                        <input type="number" name="price_min" placeholder="最低价" value="{{ price_min }}">
                         <span>-</span>
-                        <input type="number" placeholder="最高价">
-                        <button class="btn" style="padding: 6px 14px; font-size: 14px;">确定</button>
-                    </div>
+                        <input type="number" name="price_max" placeholder="最高价" value="{{ price_max }}">
+                        <button class="btn" type="submit" style="padding: 6px 14px; font-size: 14px;">确定</button>
+                    </form>
                 </div>
                 <div class="filter-row">
                     <strong>综合：</strong>
-                    <button class="pill {% if not current_sort %}active{% endif %}">综合排序</button>
-                    <button class="pill">销量</button>
-                    <button class="pill {% if current_sort == 'new' %}active{% endif %}">新品</button>
-                    <button class="pill">价格</button>
-                    <button class="pill">评价</button>
-                    <div class="view-toggle">
-                        <button class="view-btn active">#</button>
-                        <button class="view-btn">=</button>
-                    </div>
+                    <a class="pill {% if not sort_by %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}">综合排序</a>
+                    <a class="pill {% if sort_by == 'sales' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}&sort_by=sales">销量</a>
+                    <a class="pill {% if current_sort == 'new' %}active{% endif %}" href="{% url 'shop:category' %}?sort=new">新品</a>
+                    <a class="pill {% if sort_by == 'price_asc' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}&sort_by=price_asc">价格升序</a>
+                    <a class="pill {% if sort_by == 'price_desc' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}&sort_by=price_desc">价格降序</a>
+                    <a class="pill {% if sort_by == 'rating' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}&sort_by=rating">评价</a>
                 </div>
             </div>
 
@@ -261,34 +283,32 @@
                                 {% else %}
                                     <span class="product-fallback"></span>
                                 {% endif %}
-                                {% if current_sort == "hot" %}
-                                    <span class="hot-badge">HOT</span>
-                                {% elif current_sort == "new" %}
+                                {% if product.is_new %}
                                     <span class="new-badge">NEW</span>
+                                {% elif product.is_hot %}
+                                    <span class="hot-badge">HOT</span>
                                 {% endif %}
                             </div>
                             <div class="product-name">{{ product.name }}</div>
                             <div class="product-meta">
                                 <span class="stars">*****</span>
-                                <span>{{ product.rating|default:"4.8" }}</span>
+                                <span>{{ product.rating }}</span>
                             </div>
                             <div class="price">¥{{ product.price }}</div>
-                            <div class="muted" style="font-size: 14px;">已售 {{ product.sales|default:"1.2万" }}</div>
+                            <div class="muted" style="font-size: 14px;">已售 {{ product.sales }}</div>
                         </a>
+                        <form method="post" action="{% url 'shop:add_to_cart' product.id %}" style="margin-top: -28px; text-align: right;">
+                            {% csrf_token %}
+                            <button class="round-add" type="submit" aria-label="加入购物车">+</button>
+                        </form>
                     </article>
                 {% empty %}
-                    <div class="empty-note">暂无商品，请先到后台添加商品。</div>
+                    <div class="empty-note">暂无匹配商品，请调整筛选条件。</div>
                 {% endfor %}
             </div>
 
             <div style="display: flex; justify-content: center; gap: 8px; margin-top: 32px;">
-                <button class="btn" disabled>&lt;</button>
-                <button class="btn" style="background: var(--ink); color: #fff;">1</button>
-                <button class="btn">2</button>
-                <button class="btn">3</button>
-                <button class="btn">...</button>
-                <button class="btn">12</button>
-                <button class="btn">&gt;</button>
+                <span class="muted">共 {{ products|length }} 件商品</span>
             </div>
         </div>
     </section>
@@ -296,9 +316,12 @@
 
 <script>
 function toggleSubcategories(el) {
-    var next = el.nextElementSibling;
-    if (next && next.classList.contains('subcategories')) {
-        next.classList.toggle('show');
+    var parent = el.closest('.category-item');
+    if (parent) {
+        var next = parent.nextElementSibling;
+        if (next && next.classList.contains('subcategories')) {
+            next.classList.toggle('show');
+        }
     }
 }
 </script>

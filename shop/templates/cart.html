@@ -155,7 +155,7 @@
             </div>
             <div class="summary-row"><span>运费</span><strong>免运费</strong></div>
             <div class="summary-row summary-total"><span>合计</span><span class="price-red">¥{{ total }}</span></div>
-            <a class="btn btn-primary" style="width: 100%; margin-top: 8px;" href="#">去结算（{{ cart_items|length }}）</a>
+            <a class="btn btn-primary" style="width: 100%; margin-top: 8px;" href="{% url 'shop:checkout_page' %}">去结算（{{ cart_items|length }}）</a>
             <p class="muted" style="text-align: center;">✓ 安全支付 | 100% 正品保障</p>
         </div>
 

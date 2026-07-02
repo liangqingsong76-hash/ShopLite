@@ -88,11 +88,11 @@
             <a class="side-link active" href="{% url 'shop:profile' %}">
                 <span>▸</span>个人中心
             </a>
-            <a class="side-link" href="#">
-                <span>▸</span>我的订单
+            <a class="side-link" href="{% url 'shop:order_list' %}">
+                <span>|</span>我的订单
             </a>
-            <a class="side-link" href="#">
-                <span>▸</span>收货地址
+            <a class="side-link" href="{% url 'shop:address_list' %}">
+                <span>|</span>收货地址
             </a>
             <a class="side-link" href="#">
                 <span>▸</span>优惠券
@@ -106,8 +106,8 @@
             <a class="side-link" href="#">
                 <span>▸</span>退换/售后
             </a>
-            <a class="side-link" href="#">
-                <span>▸</span>我的收藏
+            <a class="side-link" href="{% url 'shop:favorite_list' %}">
+                <span>|</span>我的收藏
             </a>
             <a class="side-link" href="#">
                 <span>▸</span>浏览记录
@@ -157,7 +157,7 @@
         </div>
 
         <div class="profile-card">
-            <div class="section-title" style="margin-top: 0;"><h2>我的订单</h2><a class="muted" href="#">查看全部订单 ›</a></div>
+            <div class="section-title" style="margin-top: 0;"><h2>我的订单</h2><a class="muted" href="{% url 'shop:order_list' %}">查看全部订单 &gt;</a></div>
             <div class="order-icons">
                 <div><span class="round-service">▣</span>待付款</div>
                 <div><span class="round-service">▣</span>待发货</div>

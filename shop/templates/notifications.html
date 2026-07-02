@@ -4,167 +4,58 @@
 
 {% block extra_head %}
 <style>
-    .notification-list {
-        max-width: 900px;
-        margin: 0 auto;
+    .notifications-layout { max-width: 900px; margin: 0 auto; }
+    .notif-card {
+        display: flex; gap: 16px; align-items: flex-start;
+        padding: 18px 20px; border: 1px solid var(--line); border-radius: 8px;
+        margin-bottom: 10px; transition: all 0.2s;
     }
-    .notification-card {
-        display: flex;
-        gap: 16px;
-        padding: 20px;
-        background: #fff;
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        margin-bottom: 12px;
-        transition: all 0.2s;
+    .notif-card:hover { border-color: var(--ink); }
+    .notif-card .icon {
+        width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+        font-size: 20px; flex-shrink: 0; background: var(--bg); color: var(--ink);
     }
-    .notification-card:hover {
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-    .notification-card.unread {
-        background: #fffaf7;
-        border-left: 3px solid var(--accent);
-    }
-    .notify-icon {
-        width: 48px;
-        height: 48px;
-        display: grid;
-        place-items: center;
-        border-radius: 12px;
-        font-size: 20px;
-        flex-shrink: 0;
-    }
-    .notify-icon.order { background: #fff0f0; color: var(--danger); }
-    .notify-icon.price { background: #f0f5ff; color: #4a89dc; }
-    .notify-icon.coupon { background: #fff8f0; color: #e67e22; }
-    .notify-icon.system { background: var(--soft); color: var(--accent); }
-    .notify-content { flex: 1; min-width: 0; }
-    .notify-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-    .notify-desc { font-size: 14px; color: var(--muted); margin-bottom: 8px; line-height: 1.5; }
-    .notify-time { font-size: 12px; color: var(--muted); }
-    .notify-actions { display: flex; gap: 12px; align-items: center; }
-    .notify-btn {
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 14px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .notify-btn.primary { background: var(--ink); color: #fff; }
-    .notify-btn.primary:hover { opacity: 0.9; }
-    .notify-btn.secondary { background: var(--soft); color: var(--ink); }
-    .notify-btn.secondary:hover { background: rgba(0,0,0,0.05); }
-    .filter-tabs {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--line);
-    }
-    .filter-tab {
-        padding: 8px 20px;
-        border-radius: 20px;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        background: #f7f7f6;
-    }
-    .filter-tab.active {
-        background: var(--ink);
-        color: #fff;
-    }
-    .filter-tab:hover:not(.active) {
-        background: rgba(0,0,0,0.05);
-    }
+    .notif-card .title { font-weight: 600; margin-bottom: 4px; }
+    .notif-card .desc { color: var(--muted); font-size: 14px; }
+    .notif-card .time { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .notif-card.unread { background: #fafafa; }
+    .notif-card.unread .title::after { content: " NEW"; color: var(--danger); font-size: 11px; }
+    .empty-notif { text-align: center; padding: 60px 20px; color: var(--muted); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="crumb">
-    <a href="{% url 'shop:home' %}">首页</a>
-    <span>&gt;</span>
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
     <span>消息中心</span>
 </div>
 
-<h2 style="font-size: 24px; margin: 20px 0 24px;">消息中心</h2>
+<div class="notifications-layout">
+    <h1 style="margin: 0 0 24px;">消息中心</h1>
 
-<div class="filter-tabs">
-    <span class="filter-tab active">全部</span>
-    <span class="filter-tab">订单通知</span>
-    <span class="filter-tab">商品提醒</span>
-    <span class="filter-tab">优惠券</span>
-    <span class="filter-tab">系统消息</span>
-</div>
-
-<div class="notification-list">
-    <div class="notification-card unread">
-        <div class="notify-icon order">O</div>
-        <div class="notify-content">
-            <div class="notify-title">订单已发货</div>
-            <div class="notify-desc">您的订单 #20260630001 已发出，预计3天内送达。快递单号：SF1234567890</div>
-            <div class="notify-time">2026-06-30 14:30</div>
-        </div>
-        <div class="notify-actions">
-            <a href="#" class="notify-btn secondary">查看订单</a>
+    <div class="notif-card unread">
+        <div class="icon">!</div>
+        <div>
+            <div class="title">系统通知</div>
+            <div class="desc">欢迎使用 ShopLite 电商平台！平台已对接爬虫数据，所有商品信息已更新。</div>
+            <div class="time">2026-07-02 18:00</div>
         </div>
     </div>
-
-    <div class="notification-card unread">
-        <div class="notify-icon price">P</div>
-        <div class="notify-content">
-            <div class="notify-title">商品降价提醒</div>
-            <div class="notify-desc">您关注的「简约电热水壶」已降价至 ¥199，比原价优惠 ¥100！</div>
-            <div class="notify-time">2026-06-30 10:15</div>
-        </div>
-        <div class="notify-actions">
-            <a href="#" class="notify-btn primary">立即购买</a>
+    <div class="notif-card">
+        <div class="icon" style="background: #e8f5e9; color: #2e7d32;">$</div>
+        <div>
+            <div class="title">支付成功</div>
+            <div class="desc">您已成功创建订单，商品将尽快为您发货。</div>
+            <div class="time">2026-07-02 17:30</div>
         </div>
     </div>
-
-    <div class="notification-card unread">
-        <div class="notify-icon coupon">C</div>
-        <div class="notify-content">
-            <div class="notify-title">优惠券到账</div>
-            <div class="notify-desc">新用户专属优惠券已发放至您的账户，满299减30元，有效期至2026-07-30</div>
-            <div class="notify-time">2026-06-29 18:00</div>
-        </div>
-        <div class="notify-actions">
-            <a href="#" class="notify-btn secondary">去使用</a>
-        </div>
-    </div>
-
-    <div class="notification-card">
-        <div class="notify-icon system">S</div>
-        <div class="notify-content">
-            <div class="notify-title">欢迎加入ShopLite</div>
-            <div class="notify-desc">感谢您注册ShopLite！开启您的品质生活之旅，首次购物享受9折优惠。</div>
-            <div class="notify-time">2026-06-28 09:00</div>
-        </div>
-        <div class="notify-actions"></div>
-    </div>
-
-    <div class="notification-card">
-        <div class="notify-icon order">O</div>
-        <div class="notify-content">
-            <div class="notify-title">订单已支付</div>
-            <div class="notify-desc">您的订单 #20260628001 支付成功，商家正在备货中。</div>
-            <div class="notify-time">2026-06-28 15:20</div>
-        </div>
-        <div class="notify-actions">
-            <a href="#" class="notify-btn secondary">查看订单</a>
-        </div>
-    </div>
-
-    <div class="notification-card">
-        <div class="notify-icon system">S</div>
-        <div class="notify-content">
-            <div class="notify-title">账户安全提醒</div>
-            <div class="notify-desc">您的账户于2026-06-28 15:00在Windows设备上登录，请确认是否为本人操作。</div>
-            <div class="notify-time">2026-06-28 15:00</div>
-        </div>
-        <div class="notify-actions">
-            <a href="#" class="notify-btn secondary">查看详情</a>
+    <div class="notif-card">
+        <div class="icon" style="background: #fff3e0; color: #e65100;">B</div>
+        <div>
+            <div class="title">促销活动</div>
+            <div class="desc">全场满299减30！限时优惠，快来选购吧。</div>
+            <div class="time">2026-07-01 10:00</div>
         </div>
     </div>
 </div>
