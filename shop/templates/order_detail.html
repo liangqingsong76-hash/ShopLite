@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 订单详情{% endblock %}
+
+{% block extra_head %}
+<style>
+    .order-detail-layout { max-width: 900px; margin: 0 auto; }
+    .status-steps { display: flex; justify-content: space-between; margin: 24px 0; padding: 24px; background: #fafafa; border-radius: 8px; }
+    .step { text-align: center; flex: 1; position: relative; }
+    .step::after { content: ""; position: absolute; top: 16px; left: 60%; width: 80%; height: 2px; background: var(--line); }
+    .step:last-child::after { display: none; }
+    .step-dot { width: 32px; height: 32px; border-radius: 50%; background: var(--line); margin: 0 auto 8px; display: grid; place-items: center; color: #fff; font-size: 14px; }
+    .step.active .step-dot { background: var(--ink); }
+    .step.done .step-dot { background: var(--accent); }
+    .step.done::after { background: var(--accent); }
+    .step-label { font-size: 13px; color: var(--muted); }
+    .step.active .step-label { color: var(--ink); font-weight: 600; }
+    .detail-section { border: 1px solid var(--line); border-radius: 8px; padding: 24px; margin-bottom: 16px; }
+    .detail-section h3 { margin: 0 0 16px; font-size: 16px; }
+    .detail-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+    .detail-row .label { color: var(--muted); }
+    .order-item-row {
+        display: grid; grid-template-columns: 60px 1fr auto; gap: 16px;
+        align-items: center; padding: 10px 0;
+    }
+    .order-item-row + .order-item-row { border-top: 1px solid var(--line); }
+    .order-item-row img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:order_list' %}">我的订单</a><span>&gt;</span>
+    <span>订单详情</span>
+</div>
+
+<div class="order-detail-layout">
+    <h1 style="margin: 0;">订单详情</h1>
+    <p class="muted">订单号：{{ order.order_no }} | {{ order.created_at|date:"Y-m-d H:i" }}</p>
+
+    <div class="status-steps">
+        <div class="step done"><div class="step-dot">V</div><div class="step-label">已下单</div></div>
+        <div class="step {% if order.status != 'pending' %}done{% else %}active{% endif %}"><div class="step-dot">{% if order.status != 'pending' %}V{% else %}2{% endif %}</div><div class="step-label">已付款</div></div>
+        <div class="step {% if order.status == 'shipped' or order.status == 'completed' %}done{% elif order.status == 'paid' %}active{% endif %}"><div class="step-dot">{% if order.status == 'shipped' or order.status == 'completed' %}V{% else %}3{% endif %}</div><div class="step-label">已发货</div></div>
+        <div class="step {% if order.status == 'completed' %}done{% endif %}"><div class="step-dot">{% if order.status == 'completed' %}V{% else %}4{% endif %}</div><div class="step-label">已完成</div></div>
+    </div>
+
+    <div class="detail-section">
+        <h3>收货信息</h3>
+        <p>{{ order.address_text|default:"暂无地址信息" }}</p>
+    </div>
+
+    <div class="detail-section">
+        <h3>商品清单</h3>
+        {% for item in order.items.all %}
+            <div class="order-item-row">
+                {% if item.product_image %}
+                    <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
+                {% else %}
+                    <span class="product-fallback" style="width:60px;height:60px;"></span>
+                {% endif %}
+                <div>
+                    <div style="font-weight:600;">{{ item.product_name }}</div>
+                    <div class="muted" style="font-size:13px;">x{{ item.quantity }}</div>
+                </div>
+                <strong>¥{{ item.subtotal }}</strong>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="detail-section">
+        <h3>费用明细</h3>
+        <div class="detail-row"><span class="label">商品总额</span><span>¥{{ order.total_amount }}</span></div>
+        <div class="detail-row"><span class="label">优惠金额</span><span class="price-red">-¥{{ order.discount_amount }}</span></div>
+        <div class="detail-row"><span class="label">运费</span><span>免运费</span></div>
+        <div class="detail-row" style="font-weight:800; font-size:16px; border-top:1px solid var(--line); padding-top:12px; margin-top:8px;">
+            <span>实付金额</span><span class="price-red">¥{{ order.pay_amount }}</span>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px;">
+        <a class="btn" href="{% url 'shop:order_list' %}">返回订单列表</a>
+        <a class="btn btn-primary" href="{% url 'shop:category' %}">继续购物</a>
+    </div>
+</div>
+{% endblock %}

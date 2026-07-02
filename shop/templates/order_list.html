@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 我的订单{% endblock %}
+
+{% block extra_head %}
+<style>
+    .order-tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+    .order-tab {
+        padding: 12px 24px;
+        font-weight: 600;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        color: var(--muted);
+    }
+    .order-tab.active { border-bottom-color: var(--ink); color: var(--ink); }
+    .order-card {
+        border: 1px solid var(--line); border-radius: 8px; margin-bottom: 16px;
+        overflow: hidden;
+    }
+    .order-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 14px 20px; background: #fafafa; border-bottom: 1px solid var(--line);
+    }
+    .order-no { font-weight: 600; }
+    .order-status { color: var(--accent); font-weight: 600; }
+    .order-body { padding: 16px 20px; }
+    .order-item {
+        display: grid; grid-template-columns: 60px 1fr auto; gap: 16px;
+        align-items: center; padding: 10px 0;
+    }
+    .order-item + .order-item { border-top: 1px solid var(--line); }
+    .order-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
+    .order-footer {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 14px 20px; border-top: 1px solid var(--line);
+    }
+    .order-total { font-size: 18px; font-weight: 800; }
+    .order-actions { display: flex; gap: 10px; }
+    .empty-orders { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-orders .empty-icon { font-size: 48px; margin-bottom: 16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
+    <span>我的订单</span>
+</div>
+
+<h1 style="margin: 0 0 24px;">我的订单</h1>
+
+<div class="order-tabs">
+    <a class="order-tab {% if not status_filter %}active{% endif %}" href="{% url 'shop:order_list' %}">全部</a>
+    <a class="order-tab {% if status_filter == 'pending' %}active{% endif %}" href="?status=pending">待付款</a>
+    <a class="order-tab {% if status_filter == 'paid' %}active{% endif %}" href="?status=paid">待发货</a>
+    <a class="order-tab {% if status_filter == 'shipped' %}active{% endif %}" href="?status=shipped">待收货</a>
+    <a class="order-tab {% if status_filter == 'completed' %}active{% endif %}" href="?status=completed">已完成</a>
+</div>
+
+{% if orders %}
+    {% for order in orders %}
+        <div class="order-card">
+            <div class="order-header">
+                <span class="order-no">订单号：{{ order.order_no }}</span>
+                <span class="order-status">{{ order.get_status_display }}</span>
+            </div>
+            <div class="order-body">
+                {% for item in order.items.all %}
+                    <div class="order-item">
+                        {% if item.product_image %}
+                            <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
+                        {% else %}
+                            <span class="product-fallback" style="width:60px;height:60px;"></span>
+                        {% endif %}
+                        <div>
+                            <div style="font-weight:600;">{{ item.product_name }}</div>
+                            <div class="muted" style="font-size:13px;">x{{ item.quantity }} | ¥{{ item.price }}</div>
+                        </div>
+                        <strong>¥{{ item.subtotal }}</strong>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="order-footer">
+                <span>共 {{ order.items.count }} 件商品</span>
+                <span class="order-total">实付：<span class="price-red">¥{{ order.pay_amount }}</span></span>
+                <div class="order-actions">
+                    <a class="btn" href="{% url 'shop:order_detail' order.id %}">查看详情</a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-orders">
+        <div class="empty-icon">O</div>
+        <p style="font-size: 16px; margin-bottom: 8px;">暂无订单</p>
+        <a class="btn" href="{% url 'shop:category' %}">去逛逛</a>
+    </div>
+{% endif %}
+{% endblock %}
