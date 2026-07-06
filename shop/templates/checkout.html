@@ -4,34 +4,84 @@
 
 {% block extra_head %}
 <style>
-    .checkout-layout { display: grid; grid-template-columns: 1fr 380px; gap: 34px; }
-    .checkout-section { border: 1px solid var(--line); border-radius: 8px; padding: 24px; margin-bottom: 16px; }
-    .checkout-section h3 { margin: 0 0 16px; font-size: 16px; }
-    .address-card {
-        display: flex; justify-content: space-between; align-items: flex-start;
-        padding: 16px; border: 1px solid var(--line); border-radius: 8px;
-        margin-bottom: 10px; cursor: pointer; transition: all 0.2s;
+    .checkout-layout { display: grid; grid-template-columns: 1fr 370px; gap: 28px; align-items: start; }
+    .check-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-bottom: 14px; background: #fff; }
+    .check-card h3 { margin: 0 0 14px; font-size: 16px; font-weight: 700; }
+    .address-option {
+        display: block;
+        padding: 16px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all var(--transition);
     }
-    .address-card.active { border-color: var(--ink); background: #fafafa; }
-    .address-card:hover { border-color: var(--ink); }
-    .address-card .name { font-weight: 700; font-size: 15px; }
-    .address-card .phone { margin-left: 16px; color: var(--muted); }
-    .address-card .addr { margin-top: 4px; color: var(--muted); font-size: 14px; }
-    .address-card .tag {
-        display: inline-block; padding: 2px 8px; border-radius: 4px;
-        background: var(--ink); color: #fff; font-size: 11px; margin-left: 8px;
+    .address-option:hover { border-color: var(--ink); }
+    .address-option.active { border-color: var(--ink); background: #fafaf8; }
+    .address-option input[type="radio"] { display: none; }
+    .address-option .name { font-weight: 700; font-size: 15px; }
+    .address-option .phone { margin-left: 14px; color: var(--muted); font-size: 14px; }
+    .address-option .detail { margin-top: 4px; color: var(--muted); font-size: 13px; }
+    .address-option .default-tag {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 3px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 10px;
+        margin-left: 6px;
+        vertical-align: middle;
     }
     .checkout-item {
-        display: grid; grid-template-columns: 60px 1fr auto; gap: 16px;
-        align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        gap: 14px;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
     }
-    .checkout-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
-    .summary, .service-panel { border: 1px solid var(--line); border-radius: 8px; padding: 28px 32px; }
-    .summary-row { display: flex; justify-content: space-between; margin: 22px 0; }
-    .summary-total { border-top: 1px solid var(--line); padding-top: 24px; font-size: 24px; font-weight: 800; }
+    .checkout-item:last-child { border-bottom: 0; }
+    .checkout-item-img {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        background: var(--soft);
+    }
+    .checkout-item-img img { width: 100%; height: 100%; object-fit: cover; }
+    .checkout-item-name { font-weight: 600; }
+    .checkout-item-qty { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .checkout-item-price { font-weight: 700; white-space: nowrap; }
+    .payment-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1.5px solid var(--ink);
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 15px;
+        background: #fafaf8;
+    }
+    .summary-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 24px;
+        background: #fff;
+        position: sticky;
+        top: 20px;
+    }
+    .summary-card h2 { margin: 0 0 20px; font-size: 18px; }
+    .summary-row { display: flex; justify-content: space-between; margin: 14px 0; font-size: 14px; }
+    .summary-row .label { color: var(--muted); }
+    .summary-divider { border-top: 1px solid var(--line); margin: 16px 0; }
+    .summary-total { display: flex; justify-content: space-between; font-size: 20px; font-weight: 800; }
+    .summary-total .price-red { font-size: 26px; }
 
     @media (max-width: 1100px) {
         .checkout-layout { grid-template-columns: 1fr; }
+        .summary-card { position: static; }
     }
 </style>
 {% endblock %}
@@ -43,68 +93,75 @@
     <span>确认订单</span>
 </div>
 
-<h1 style="margin: 0 0 24px;">确认订单</h1>
+<h1 style="margin: 0 0 22px;">确认订单</h1>
 
 <section class="checkout-layout">
     <div>
-        <div class="checkout-section">
-            <h3>收货地址</h3>
+        <div class="check-card">
+            <h3>📬 收货地址</h3>
             {% if addresses %}
                 {% for addr in addresses %}
-                <label class="address-card {% if addr.is_default %}active{% endif %}">
-                    <input type="radio" name="address_id" value="{{ addr.id }}" {% if addr.is_default %}checked{% endif %} form="orderForm">
+                <label class="address-option {% if addr.is_default %}active{% endif %}">
+                    <input type="radio" name="address_id" value="{{ addr.id }}" form="orderForm" {% if addr.is_default %}checked{% endif %}>
                     <div>
-                        <div><span class="name">{{ addr.receiver }}</span><span class="phone">{{ addr.phone }}</span>{% if addr.is_default %}<span class="tag">默认</span>{% endif %}</div>
-                        <div class="addr">{{ addr.province }}{{ addr.city }}{{ addr.district }} {{ addr.detail }}</div>
+                        <span class="name">{{ addr.receiver }}</span>
+                        <span class="phone">{{ addr.phone }}</span>
+                        {% if addr.is_default %}<span class="default-tag">默认</span>{% endif %}
                     </div>
+                    <div class="detail">{{ addr.province }}{{ addr.city }}{{ addr.district }} {{ addr.detail }}</div>
                 </label>
                 {% endfor %}
             {% else %}
-                <p class="muted">暂无收货地址，请先<a href="{% url 'shop:address_add' %}">添加地址</a></p>
+                <p class="muted">暂无收货地址，请先<a href="{% url 'shop:address_add' %}" style="color:var(--accent);">添加地址</a></p>
             {% endif %}
-            <a href="{% url 'shop:address_add' %}" style="display: inline-block; margin-top: 10px; color: var(--accent);">+ 新增地址</a>
+            <a href="{% url 'shop:address_add' %}" style="display:inline-block;margin-top:8px;font-size:14px;color:var(--accent);font-weight:600;">+ 新增地址</a>
         </div>
 
-        <div class="checkout-section">
-            <h3>商品清单（{{ cart_items|length }}件）</h3>
+        <div class="check-card">
+            <h3>🛍️ 商品清单（{{ cart_items|length }}件）</h3>
             {% for item in cart_items %}
                 <div class="checkout-item">
-                    {% if item.product.image %}
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
-                    {% else %}
-                        <span class="product-fallback" style="width:60px;height:60px;"></span>
-                    {% endif %}
-                    <div>
-                        <div style="font-weight:600;">{{ item.product.name }}</div>
-                        <div class="muted" style="font-size:13px;">x{{ item.quantity }}</div>
+                    <div class="checkout-item-img">
+                        {% if item.product.image %}
+                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                        {% else %}
+                            <span class="product-fallback" style="width:56px;height:56px;"></span>
+                        {% endif %}
                     </div>
-                    <strong>¥{{ item.subtotal }}</strong>
+                    <div>
+                        <div class="checkout-item-name">{{ item.product.name }}</div>
+                        <div class="checkout-item-qty">x{{ item.quantity }}</div>
+                    </div>
+                    <div class="checkout-item-price">¥{{ item.subtotal }}</div>
                 </div>
             {% endfor %}
         </div>
 
-        <div class="checkout-section">
-            <h3>支付方式</h3>
-            <label style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid var(--ink); border-radius: 8px;">
-                <span style="font-size: 20px;">W</span>
-                <span style="font-weight: 600;">微信支付</span>
-            </label>
+        <div class="check-card">
+            <h3>💳 支付方式</h3>
+            <div class="payment-option">
+                <span style="font-size:22px;">💚</span>
+                <span>微信支付</span>
+            </div>
         </div>
     </div>
 
-    <aside>
-        <div class="summary">
-            <h2 style="margin-top: 0;">订单金额</h2>
-            <div class="summary-row"><span>商品金额</span><strong>¥{{ subtotal }}</strong></div>
-            <div class="summary-row"><span>优惠券</span><strong class="price-red">- ¥{{ discount }}</strong></div>
-            <div class="summary-row"><span>运费</span><strong>免运费</strong></div>
-            <div class="summary-row summary-total"><span>合计</span><span class="price-red">¥{{ total }}</span></div>
-            <form id="orderForm" method="post" action="{% url 'shop:place_order' %}">
-                {% csrf_token %}
-                <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 8px;">提交订单</button>
-            </form>
-            <p class="muted" style="text-align: center; margin-top: 12px;">✓ 安全支付 | 100% 正品保障</p>
+    <div class="summary-card">
+        <h2>订单金额</h2>
+        <div class="summary-row"><span class="label">商品金额</span><strong>¥{{ subtotal }}</strong></div>
+        <div class="summary-row"><span class="label">优惠券</span><strong class="price-red">-¥{{ discount }}</strong></div>
+        <div class="summary-row"><span class="label">运费</span><strong style="color:var(--success);">免运费</strong></div>
+        <div class="summary-divider"></div>
+        <div class="summary-total"><span>合计</span><span class="price-red">¥{{ total }}</span></div>
+        <div class="summary-divider"></div>
+        <div style="padding:6px 12px;margin:12px 0;background:#fafaf8;border-radius:var(--radius-sm);font-size:13px;color:var(--muted);text-align:center;">
+            已享满减优惠 ¥30
         </div>
-    </aside>
+        <form id="orderForm" method="post" action="{% url 'shop:place_order' %}">
+            {% csrf_token %}
+            <button class="btn btn-primary btn-lg" type="submit" style="width:100%;">提交订单</button>
+        </form>
+        <p class="muted" style="text-align:center;margin-top:12px;font-size:13px;">✓ 安全支付 · 100% 正品保障</p>
+    </div>
 </section>
 {% endblock %}

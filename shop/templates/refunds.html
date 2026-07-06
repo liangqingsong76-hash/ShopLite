@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 退款/售后{% endblock %}
+
+{% block extra_head %}
+<style>
+    .page-wrap { max-width: 900px; margin: 0 auto; }
+    .refund-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        margin-bottom: 14px;
+        background: #fff;
+    }
+    .refund-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 20px;
+        background: #fafaf8;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
+    }
+    .refund-no { font-weight: 600; color: var(--muted); }
+    .refund-status { font-weight: 700; }
+    .refund-status.processing { color: var(--warn); }
+    .refund-status.done { color: var(--success); }
+    .refund-status.rejected { color: var(--danger); }
+    .refund-body { padding: 14px 20px; }
+    .refund-row {
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        gap: 14px;
+        align-items: center;
+        padding: 8px 0;
+    }
+    .refund-img {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        background: var(--soft);
+    }
+    .refund-img img { width: 100%; height: 100%; object-fit: cover; }
+    .refund-name { font-weight: 600; font-size: 14px; }
+    .refund-reason { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .refund-amount { font-weight: 700; }
+    .refund-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 20px;
+        border-top: 1px solid var(--line);
+    }
+    .empty-state { text-align: center; padding: 64px 20px; color: var(--muted); }
+    .empty-state-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
+    <span>退款/售后</span>
+</div>
+
+<div class="page-wrap">
+    <h1 style="margin: 0 0 22px;">退款/售后</h1>
+
+    <div class="refund-card">
+        <div class="refund-header">
+            <span class="refund-no">售后编号：AS-20260701001</span>
+            <span class="refund-status processing">处理中</span>
+        </div>
+        <div class="refund-body">
+            <div class="refund-row">
+                <div class="refund-img"><span class="product-fallback" style="width:56px;height:56px;display:block;"></span></div>
+                <div>
+                    <div class="refund-name">示例商品名称</div>
+                    <div class="refund-reason">退款原因：质量问题</div>
+                </div>
+                <div class="refund-amount">¥128.00</div>
+            </div>
+        </div>
+        <div class="refund-footer">
+            <span style="font-size:12px;color:var(--muted);">申请时间：2026-07-01 10:30</span>
+            <span style="font-size:12px;color:var(--muted);">卖家已同意，退款处理中</span>
+        </div>
+    </div>
+
+    <div class="refund-card">
+        <div class="refund-header">
+            <span class="refund-no">售后编号：AS-20260625002</span>
+            <span class="refund-status done">已完成</span>
+        </div>
+        <div class="refund-body">
+            <div class="refund-row">
+                <div class="refund-img"><span class="product-fallback" style="width:56px;height:56px;display:block;"></span></div>
+                <div>
+                    <div class="refund-name">示例商品名称</div>
+                    <div class="refund-reason">退款原因：不想要了</div>
+                </div>
+                <div class="refund-amount">¥56.00</div>
+            </div>
+        </div>
+        <div class="refund-footer">
+            <span style="font-size:12px;color:var(--muted);">申请时间：2026-06-25 14:20</span>
+            <span style="font-size:12px;color:var(--success);font-weight:600;">退款成功</span>
+        </div>
+    </div>
+
+    <p class="muted" style="text-align:center;padding:20px;font-size:13px;">共计 2 条售后记录</p>
+</div>
+{% endblock %}

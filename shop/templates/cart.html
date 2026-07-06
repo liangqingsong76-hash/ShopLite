@@ -4,191 +4,218 @@
 
 {% block extra_head %}
 <style>
-    .cart-layout { display: grid; grid-template-columns: 1fr 380px; gap: 34px; }
-    .cart-toolbar, .cart-item {
-        display: grid;
-        grid-template-columns: 34px 150px 1fr 130px 140px 110px;
-        align-items: center;
-        gap: 22px;
-    }
-    .cart-toolbar { padding: 0 0 20px; border-bottom: 1px solid var(--line); color: var(--muted); }
-    .cart-item { padding: 24px 0; border-bottom: 1px solid var(--line); }
-    .check {
-        width: 20px;
-        height: 20px;
-        display: grid;
-        place-items: center;
-        border-radius: 4px;
-        background: var(--ink);
-        color: #fff;
-        font-size: 14px;
-    }
-    .qty-small {
-        display: inline-grid;
-        grid-template-columns: 36px 44px 36px;
-        height: 36px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        overflow: hidden;
-        text-align: center;
-    }
-    .qty-small span { display: grid; place-items: center; border-right: 1px solid var(--line); cursor: pointer; }
-    .qty-small span:last-child { border-right: 0; }
-    .summary, .service-panel { border: 1px solid var(--line); border-radius: 8px; padding: 28px 32px; }
-    .summary-row { display: flex; justify-content: space-between; margin: 22px 0; }
-    .summary-total { border-top: 1px solid var(--line); padding-top: 24px; font-size: 24px; font-weight: 800; }
-    .service-panel { margin-top: 14px; display: grid; gap: 22px; }
-    .coupon-strip {
-        min-height: 50px;
+    .cart-layout { display: grid; grid-template-columns: 1fr 370px; gap: 32px; align-items: start; }
+    .cart-card { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: #fff; }
+    .cart-card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 18px;
-        padding: 0 24px;
-        background: #fafafa;
-        border-radius: 8px;
-        margin-top: 28px;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--line);
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--muted);
     }
-    .link-button { border: 0; background: transparent; color: var(--muted); padding: 0; }
-    .toolbar-actions { display: flex; gap: 24px; color: var(--muted); }
+    .cart-item {
+        display: grid;
+        grid-template-columns: 28px 100px 1fr 120px 100px 100px;
+        align-items: center;
+        gap: 18px;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+    }
+    .cart-item:last-child { border-bottom: 0; }
+    .cart-item-check { width: 20px; height: 20px; accent-color: var(--ink); cursor: pointer; }
+    .cart-item-img {
+        width: 88px;
+        height: 88px;
+        border-radius: var(--radius-sm);
+        background: var(--soft);
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+    }
+    .cart-item-img img { width: 100%; height: 100%; object-fit: cover; }
+    .cart-item-info { display: grid; gap: 6px; }
+    .cart-item-name { font-weight: 600; line-height: 1.4; }
+    .cart-item-spec { font-size: 12px; color: var(--muted); }
+    .cart-item-price { font-weight: 700; text-align: center; }
+    .qty-stepper {
+        display: inline-grid;
+        grid-template-columns: 34px 44px 34px;
+        height: 34px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        text-align: center;
+        font-size: 13px;
+    }
+    .qty-stepper button {
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-right: 1px solid var(--line);
+        background: #fafaf8;
+        cursor: pointer;
+        font-size: 16px;
+        color: var(--ink);
+        transition: background var(--transition);
+    }
+    .qty-stepper button:hover { background: #eee; }
+    .qty-stepper button:last-child { border-right: 0; }
+    .qty-stepper span { display: grid; place-items: center; font-weight: 600; }
+    .cart-item-subtotal { text-align: center; }
+    .cart-item-subtotal .price { font-size: 16px; }
+    .cart-item-remove {
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 18px;
+        transition: color var(--transition);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+    }
+    .cart-item-remove:hover { color: var(--danger); background: #fff5f5; }
+    .summary-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 24px;
+        background: #fff;
+        position: sticky;
+        top: 20px;
+    }
+    .summary-card h2 { margin: 0 0 20px; font-size: 18px; }
+    .summary-row { display: flex; justify-content: space-between; margin: 14px 0; font-size: 14px; }
+    .summary-row .label { color: var(--muted); }
+    .summary-divider { border-top: 1px solid var(--line); margin: 16px 0; }
+    .summary-total { display: flex; justify-content: space-between; font-size: 20px; font-weight: 800; margin: 12px 0; }
+    .summary-total .price-red { font-size: 26px; }
+    .cart-empty {
+        text-align: center;
+        padding: 64px 24px;
+        color: var(--muted);
+    }
+    .cart-empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
+    .cart-empty p { margin: 8px 0; font-size: 15px; }
 
     @media (max-width: 1100px) {
         .cart-layout { grid-template-columns: 1fr; }
-        .cart-toolbar { display: none; }
-        .cart-item { grid-template-columns: 28px 110px 1fr; }
-        .cart-item > div:nth-child(n+4), .cart-item > strong, .cart-item > form { grid-column: 3; }
+        .cart-item {
+            grid-template-columns: 24px 70px 1fr;
+            gap: 12px;
+            padding: 16px;
+        }
+        .cart-item > :nth-child(n+4) { grid-column: 3; margin-top: 8px; }
+        .cart-card-header { display: none; }
+        .summary-card { position: static; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <span>购物车</span>
+</div>
+
+<h1 style="margin: 0 0 24px;">购物车{% if cart_items %}（{{ cart_items|length }}）{% endif %}</h1>
+
+{% if cart_items %}
 <section class="cart-layout">
-    <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
-            <h1 style="margin: 0;">购物车（{{ cart_items|length }}）</h1>
-            <div class="toolbar-actions">
-                <a href="#">删除选中</a>
-                <a href="#">移入收藏夹</a>
-            </div>
-        </div>
-        <div class="cart-toolbar">
-            <span class="check">✓</span>
+    <div class="cart-card">
+        <div class="cart-card-header">
             <span>全选</span>
+            <span></span>
             <span></span>
             <span>单价</span>
             <span>数量</span>
             <span>小计</span>
         </div>
-
         {% for item in cart_items %}
-            <article class="cart-item">
-                <span class="check">✓</span>
-                <a class="product-image" href="{% url 'shop:product_detail' item.product.id %}">
+            <div class="cart-item">
+                <input type="checkbox" class="cart-item-check" checked>
+                <a class="cart-item-img" href="{% url 'shop:product_detail' item.product.id %}">
                     {% if item.product.image %}
                         <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
                     {% else %}
-                        <span class="product-fallback"></span>
+                        <span class="product-fallback" style="width:44px;height:44px;"></span>
                     {% endif %}
                 </a>
-                <div>
-                    <h3 style="margin: 0 0 10px;">{{ item.product.name }}</h3>
-                    <div class="muted">颜色：{{ item.color|default:"米白色" }}</div>
-                    <div class="muted" style="margin-top: 10px;">7天无理由退换</div>
+                <div class="cart-item-info">
+                    <a class="cart-item-name" href="{% url 'shop:product_detail' item.product.id %}">{{ item.product.name }}</a>
+                    {% if item.color %}<span class="cart-item-spec">{{ item.color }}</span>{% endif %}
+                    <span class="cart-item-spec">7天无理由退换</span>
                 </div>
-                <strong>¥{{ item.product.price }}</strong>
-                <span class="qty-small"><span>-</span><span>{{ item.quantity }}</span><span>+</span></span>
-                <div>
-                    <strong>¥{{ item.subtotal|default:item.product.price }}</strong>
-                    {% if item.id %}
-                        <form method="post" action="{% url 'shop:remove_cart_item' item.id %}" style="margin-top: 12px;">
-                            {% csrf_token %}
-                            <button class="link-button" type="submit">删除</button>
-                        </form>
-                    {% endif %}
+                <div class="cart-item-price">¥{{ item.product.price }}</div>
+                <div class="qty-stepper">
+                    <button type="button">−</button>
+                    <span>{{ item.quantity }}</span>
+                    <button type="button">+</button>
                 </div>
-            </article>
-        {% empty %}
-            <div class="empty-note">购物车还是空的，先去挑几件喜欢的商品吧。</div>
+                <div class="cart-item-subtotal">
+                    <span class="price price-red">¥{{ item.subtotal }}</span>
+                </div>
+                <form method="post" action="{% url 'shop:remove_cart_item' item.id %}" style="text-align:center;">
+                    {% csrf_token %}
+                    <button class="cart-item-remove" type="submit" title="删除">&times;</button>
+                </form>
+            </div>
         {% endfor %}
-
-        <div class="section-title">
-            <h2>您可能还喜欢</h2>
-        </div>
-        <div class="product-grid">
-            {% for product in recommendations %}
-                <article class="product-card">
-                    <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
-                        <div class="product-image">
-                            {% if product.image %}
-                                <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                            {% else %}
-                                <span class="product-fallback"></span>
-                            {% endif %}
-                        </div>
-                        <div class="product-name">{{ product.name }}</div>
-                        <div class="amount-row">
-                            <span class="price">¥{{ product.price }}</span>
-                        </div>
-                    </a>
-                    <form method="post" action="{% url 'shop:add_to_cart' product.id %}" style="margin-top: -36px; text-align: right;">
-                        {% csrf_token %}
-                        <button class="round-add" type="submit">+</button>
-                    </form>
-                </article>
-            {% endfor %}
-        </div>
-
-        <div class="coupon-strip">
-            <span>已享受满减优惠，满 ¥299 减 ¥30</span>
-            <a href="{% url 'shop:category' %}">去逛逛 ›</a>
-        </div>
     </div>
 
-    <aside>
-        <div class="summary">
-            <h2 style="margin-top: 0;">订单结算</h2>
-            <div class="summary-row"><span>商品金额（{{ cart_items|length }}件）</span><strong>¥{{ subtotal }}</strong></div>
-            <div class="summary-row">
-                <span>优惠券</span>
-                <strong class="price-red">- ¥{{ discount }}</strong>
-                <a href="#" style="color: var(--accent); font-size: 14px;">›</a>
-            </div>
-            <div class="summary-row"><span>运费</span><strong>免运费</strong></div>
-            <div class="summary-row summary-total"><span>合计</span><span class="price-red">¥{{ total }}</span></div>
-            <a class="btn btn-primary" style="width: 100%; margin-top: 8px;" href="{% url 'shop:checkout_page' %}">去结算（{{ cart_items|length }}）</a>
-            <p class="muted" style="text-align: center;">✓ 安全支付 | 100% 正品保障</p>
+    <div class="summary-card">
+        <h2>订单结算</h2>
+        <div class="summary-row"><span class="label">商品金额（{{ cart_items|length }}件）</span><strong>¥{{ subtotal }}</strong></div>
+        <div class="summary-row"><span class="label">优惠券</span><strong class="price-red">-¥{{ discount }}</strong></div>
+        <div class="summary-row"><span class="label">运费</span><strong style="color:var(--success);">免运费</strong></div>
+        <div class="summary-divider"></div>
+        <div class="summary-total"><span>合计</span><span class="price-red">¥{{ total }}</span></div>
+        <div class="summary-divider"></div>
+        <div style="padding: 4px 12px; margin: 12px 0; background: #fafaf8; border-radius: var(--radius-sm); font-size: 13px; color: var(--muted); text-align: center;">
+            已享满减优惠 ¥30
         </div>
+        <a class="btn btn-primary btn-lg" href="{% url 'shop:checkout_page' %}" style="width: 100%; margin-top: 8px;">去结算（{{ cart_items|length }}）</a>
+        <p class="muted" style="text-align: center; margin-top: 12px; font-size: 13px;">✓ 安全支付 · 100% 正品保障</p>
+    </div>
+</section>
+{% else %}
+    <div class="cart-empty">
+        <div class="cart-empty-icon">🛒</div>
+        <p>购物车还是空的</p>
+        <p>先去挑几件喜欢的商品吧</p>
+        <a class="btn btn-primary" href="{% url 'shop:category' %}" style="margin-top: 16px;">去逛逛</a>
+    </div>
+{% endif %}
 
-        <div class="service-panel">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 18px;">✓</span>
-                <div>
-                    <strong>正品保障</strong>
-                    <span class="muted">官方正品，品质保证</span>
-                </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 18px;">✓</span>
-                <div>
-                    <strong>七天无理由退换</strong>
-                    <span class="muted">支持 7 天无理由退换货</span>
-                </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 18px;">✓</span>
-                <div>
-                    <strong>极速配送</strong>
-                    <span class="muted">多仓直发，快速送达</span>
-                </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 18px;">✓</span>
-                <div>
-                    <strong>客服支持</strong>
-                    <span class="muted">7x24 小时在线服务</span>
-                </div>
-            </div>
-        </div>
-    </aside>
+<section style="margin-top: 48px;" id="recommendations">
+    <div class="section-title">
+        <h2>您可能还喜欢</h2>
+    </div>
+    <div class="product-grid">
+        {% for product in recommendations %}
+            <article class="product-card">
+                <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
+                    <div class="product-image">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        {% else %}
+                            <span class="product-fallback"></span>
+                        {% endif %}
+                    </div>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-meta">
+                        <span class="stars">★★★★★</span>
+                        <span>{{ product.rating }}</span>
+                    </div>
+                    <div class="price" style="margin-top:4px;">¥{{ product.price }}</div>
+                </a>
+            </article>
+        {% endfor %}
+    </div>
 </section>
 {% endblock %}

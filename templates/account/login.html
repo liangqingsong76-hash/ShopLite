@@ -5,267 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShopLite - 登录</title>
     <style>
-        * { box-sizing: border-box; }
-        body {
-            min-height: 100vh;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f7f7f6;
-            color: #111;
-            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-            padding: 20px;
-        }
-        a { color: inherit; text-decoration: none; }
-        .login-shell {
-            width: 100%;
-            max-width: 900px;
-            min-height: calc(100vh - 40px);
-            display: grid;
-            grid-template-columns: 45% 55%;
-            background: #fff;
-            border: 1px solid #e8e6e3;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(20, 20, 20, 0.08);
-            overflow: hidden;
-        }
-        .visual-panel {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 36px;
-            background:
-                radial-gradient(circle at 70% 26%, rgba(255,255,255,0.9), rgba(255,255,255,0) 20%),
-                linear-gradient(135deg, #efe5d9, #fbfaf7);
-        }
-        .brand { font-size: 26px; font-weight: 800; }
-        .visual-copy { margin: auto 0; padding-left: 30px; }
-        .visual-copy h1 { margin: 0 0 12px; font-size: 32px; }
-        .visual-copy p { margin: 0; font-size: 18px; color: #333; }
-        .scene {
-            position: relative;
-            height: 280px;
-            border-radius: 12px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0));
-        }
-        .lamp {
-            position: absolute;
-            right: 60px;
-            top: 10px;
-            width: 120px;
-            height: 56px;
-            border-radius: 0 0 64px 64px;
-            background: #ded3c4;
-            box-shadow: inset 0 -10px 14px rgba(255,255,255,0.6);
-        }
-        .desk {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 46px;
-            height: 28px;
-            background: #b9844f;
-            border-radius: 3px;
-        }
-        .vase {
-            position: absolute;
-            left: 60px;
-            bottom: 74px;
-            width: 60px;
-            height: 112px;
-            border-radius: 30px 30px 12px 12px;
-            background: #e7dfd2;
-        }
-        .cup {
-            position: absolute;
-            left: 180px;
-            bottom: 76px;
-            width: 68px;
-            height: 60px;
-            border-radius: 0 0 22px 22px;
-            background: #b79a78;
-        }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(0,0,0,0.08);
-        }
-        .feature strong { display: block; margin-bottom: 3px; font-size: 14px; }
-        .feature span { color: #777; font-size: 12px; }
-        .form-panel { padding: 36px 48px; display: flex; flex-direction: column; }
-        .top-link { text-align: right; color: #777; font-size: 14px; }
-        .top-link a { color: #a87951; font-weight: 700; }
-        .form-box { width: 100%; max-width: 400px; margin: auto auto 0; }
-        .form-box h2 { margin: 0 0 6px; font-size: 28px; }
-        .form-box p { margin: 0 0 24px; color: #666; font-size: 15px; }
-        .field { margin-bottom: 16px; }
-        .field input {
-            width: 100%;
-            height: 52px;
-            border: 1px solid #e2e2e2;
-            border-radius: 10px;
-            outline: 0;
-            padding: 0 16px;
-            background: #fff;
-            font-size: 15px;
-        }
-        .field input:focus { border-color: #bd8a5e; box-shadow: 0 0 0 3px rgba(189,138,94,0.12); }
-        .form-error {
-            margin-bottom: 14px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            background: #fff0f0;
-            color: #c72d2d;
-            font-size: 14px;
-        }
-        .options-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 4px 0 22px;
-            color: #555;
-            font-size: 14px;
-        }
-        .submit {
-            width: 100%;
-            height: 52px;
-            border: 0;
-            border-radius: 10px;
-            background: #111;
-            color: #fff;
-            font-size: 16px;
-            font-weight: 800;
-            cursor: pointer;
-        }
-        .social-divider {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin: 28px 0 18px;
-            color: #888;
-            font-size: 14px;
-        }
-        .social-divider::before, .social-divider::after { content: ""; flex: 1; height: 1px; background: #e8e6e3; }
-        .social-icons { display: flex; justify-content: center; gap: 20px; }
-        .social-icons a {
-            width: 50px;
-            height: 50px;
-            display: grid;
-            place-items: center;
-            border: 1px solid #e8e6e3;
-            border-radius: 50%;
-            font-weight: 800;
-            font-size: 14px;
-        }
-        .agreement { margin-top: auto; text-align: center; color: #999; font-size: 12px; }
-        .agreement a { color: #a87951; }
-
-        @media (max-width: 768px) {
-            .login-shell {
-                grid-template-columns: 1fr;
-                min-height: auto;
-                max-height: none;
-            }
-            .visual-panel {
-                min-height: 320px;
-                padding: 28px;
-            }
-            .form-panel { padding: 28px 24px; }
-            .visual-copy { padding-left: 0; }
-            .visual-copy h1 { font-size: 26px; }
-            .visual-copy p { font-size: 16px; }
-            .scene { height: 200px; }
-            .form-box h2 { font-size: 24px; }
-        }
-
-        @media (max-height: 700px) {
-            body { padding: 10px; }
-            .login-shell { min-height: calc(100vh - 20px); }
-            .visual-panel { padding: 24px; }
-            .form-panel { padding: 24px 32px; }
-            .scene { height: 200px; }
-            .visual-copy h1 { font-size: 24px; }
-            .visual-copy p { font-size: 15px; }
-            .field input { height: 46px; }
-            .submit { height: 46px; }
-        }
-
-        @media (min-height: 800px) {
-            .visual-panel { padding: 48px; }
-            .form-panel { padding: 48px 64px; }
-            .scene { height: 340px; }
-        }
+        {% include "account/auth_base.css" %}
     </style>
 </head>
 <body>
-    <div class="login-shell">
-        <section class="visual-panel">
-            <div class="brand">ShopLite</div>
-            <div class="visual-copy">
-                <h1>发现品质生活</h1>
-                <p>精选好物，简约 · 实用 · 高颜值</p>
-            </div>
-            <div class="scene" aria-hidden="true">
-                <div class="lamp"></div>
-                <div class="vase"></div>
-                <div class="cup"></div>
-                <div class="desk"></div>
-            </div>
-            <div class="features">
-                <div class="feature"><strong>正品保障</strong><span>官方正品</span></div>
-                <div class="feature"><strong>7天无理由退换</strong><span>购物无忧</span></div>
-                <div class="feature"><strong>极速配送</strong><span>快速送达</span></div>
-            </div>
-        </section>
+    <header class="auth-topbar">
+        <a class="auth-brand" href="{% url 'shop:home' %}">
+            <span class="brand-mark">S</span>
+            <span>ShopLite</span>
+        </a>
+        <nav class="auth-links" aria-label="账号页快捷入口">
+            <a href="{% url 'shop:home' %}">返回首页</a>
+            <a href="{% url 'shop:help' %}">帮助中心</a>
+            <a href="{% url 'account_signup' %}">免费注册</a>
+        </nav>
+    </header>
 
-        <section class="form-panel">
-            <div class="top-link">还没有账号？ <a href="{% url 'account_signup' %}">立即注册</a></div>
-
-            <div class="form-box">
-                <h2>欢迎回来</h2>
-                <p>登录您的账号，发现更多精彩</p>
-
-                {% if form.non_field_errors %}
-                    <div class="form-error">{{ form.non_field_errors }}</div>
-                {% endif %}
-
-                <form method="post" action="{% url 'account_login' %}">
-                    {% csrf_token %}
-                    {% if redirect_field_value %}
-                        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
-                    {% endif %}
-
-                    <div class="field">
-                        <input name="login" type="text" autocomplete="username" placeholder="手机号 / 邮箱 / 用户名" required>
-                    </div>
-                    <div class="field">
-                        <input name="password" type="password" autocomplete="current-password" placeholder="密码" required>
-                    </div>
-
-                    <div class="options-row">
-                        <label><input name="remember" type="checkbox"> 记住我</label>
-                        <a href="{% url 'account_reset_password' %}">忘记密码？</a>
-                    </div>
-
-                    <button class="submit" type="submit">登录</button>
-                </form>
-
-                <div class="social-divider">或使用以下方式登录</div>
-                <div class="social-icons">
-                    <a href="#" aria-label="微信登录">微</a>
-                    <a href="#" aria-label="支付宝登录">支</a>
-                    <a href="#" aria-label="Apple 登录"></a>
+    <main class="auth-page">
+        <section class="auth-shell">
+            <div class="auth-showcase">
+                <div class="showcase-kicker">会员专享 · 每日上新</div>
+                <div class="showcase-copy">
+                    <h1>登录后查看你的专属好价</h1>
+                    <p>收藏、购物车、待付款订单和优惠券都会自动同步，继续完成你的品质购物清单。</p>
+                </div>
+                <div class="deal-board" aria-hidden="true">
+                    <div class="deal-card"><strong>¥30</strong><span>满 299 立减</span></div>
+                    <div class="deal-card"><strong>48h</strong><span>热卖商品极速发货</span></div>
+                    <div class="deal-card"><strong>100%</strong><span>订单安全保障</span></div>
+                    <div class="deal-card"><strong>7天</strong><span>无理由退换</span></div>
+                </div>
+                <div class="showcase-stats">
+                    <div class="showcase-stat"><strong>官方正品</strong><span>精选供应链</span></div>
+                    <div class="showcase-stat"><strong>售后无忧</strong><span>快速响应</span></div>
+                    <div class="showcase-stat"><strong>价格透明</strong><span>优惠实时可见</span></div>
                 </div>
             </div>
 
-            <div class="agreement">
-                登录即表示您同意 ShopLite 的 <a href="#">《用户协议》</a> 和 <a href="#">《隐私政策》</a>
+            <div class="auth-panel">
+                <div class="panel-switch">还没有账号？ <a href="{% url 'account_signup' %}">立即注册</a></div>
+
+                <div class="auth-form">
+                    <h2>欢迎回来</h2>
+                    <p class="subtitle">使用用户名、邮箱或手机号登录 ShopLite</p>
+
+                    <div class="login-tabs" aria-hidden="true">
+                        <div class="login-tab active">密码登录</div>
+                        <div class="login-tab">手机快捷登录</div>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="form-error">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'account_login' %}">
+                        {% csrf_token %}
+                        {% if redirect_field_value %}
+                            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                        {% endif %}
+
+                        <div class="field">
+                            <label class="field-label" for="id_login">账号</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">👤</span>
+                                <input id="id_login" name="login" type="text" autocomplete="username" placeholder="手机号 / 邮箱 / 用户名" required>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="id_password">密码</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">🔒</span>
+                                <input id="id_password" name="password" type="password" autocomplete="current-password" placeholder="请输入登录密码" required>
+                            </div>
+                        </div>
+
+                        <div class="options-row">
+                            <label><input name="remember" type="checkbox"> 记住我</label>
+                            <a href="{% url 'account_reset_password' %}">忘记密码？</a>
+                        </div>
+
+                        <button class="primary-submit" type="submit">登录</button>
+                    </form>
+
+                    <div class="social-divider">其他登录方式</div>
+                    <div class="social-grid">
+                        <a href="#" aria-label="微信登录">微信</a>
+                        <a href="#" aria-label="支付宝登录">支付宝</a>
+                        <a href="#" aria-label="短信登录">短信</a>
+                    </div>
+
+                    <div class="agreement">
+                        登录即表示您同意 ShopLite 的 <a href="#">用户协议</a> 和 <a href="#">隐私政策</a>
+                    </div>
+                </div>
             </div>
         </section>
-    </div>
+    </main>
 </body>
 </html>

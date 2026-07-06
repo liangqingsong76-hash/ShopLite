@@ -1,0 +1,99 @@
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-shoplite}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-621261}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    command: gunicorn shoplite.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    environment:
+      DJANGO_SETTINGS_MODULE: shoplite.settings
+      DB_HOST: db
+      DB_NAME: ${MYSQL_DATABASE:-shoplite}
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-621261}
+      REDIS_URL: redis://redis:6379/0
+      SHOPLITE_PAYMENT_SECRET: ${SHOPLITE_PAYMENT_SECRET:-}
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    environment:
+      DJANGO_SETTINGS_MODULE: shoplite.settings
+      DB_HOST: db
+      DB_NAME: ${MYSQL_DATABASE:-shoplite}
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-621261}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    command: celery -A shoplite beat -l info
+    environment:
+      DJANGO_SETTINGS_MODULE: shoplite.settings
+      DB_HOST: db
+      DB_NAME: ${MYSQL_DATABASE:-shoplite}
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-621261}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./static:/app/static:ro
+      - media_data:/app/media:ro
+    depends_on:
+      - web
+
+volumes:
+  mysql_data:
+  media_data:

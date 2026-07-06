@@ -122,6 +122,7 @@ class Order(models.Model):
     STATUS_PAID = "paid"
     STATUS_SHIPPED = "shipped"
     STATUS_COMPLETED = "completed"
+    STATUS_CANCELLED = "cancelled"
     STATUS_REFUND = "refund"
 
     STATUS_CHOICES = (
@@ -129,6 +130,7 @@ class Order(models.Model):
         (STATUS_PAID, "待发货"),
         (STATUS_SHIPPED, "待收货"),
         (STATUS_COMPLETED, "已完成"),
+        (STATUS_CANCELLED, "已取消"),
         (STATUS_REFUND, "退款/售后"),
     )
 
@@ -181,3 +183,21 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"{self.user} 收藏 {self.product}"
+
+
+class Review(models.Model):
+    product = models.ForeignKey(Product, verbose_name="商品", on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(User, verbose_name="用户", on_delete=models.SET_NULL, blank=True, null=True)
+    username = models.CharField("用户名", max_length=50)
+    rating = models.PositiveSmallIntegerField("评分", default=5)
+    content = models.TextField("评价内容")
+    is_anonymous = models.BooleanField("匿名", default=False)
+    created_at = models.DateTimeField("创建时间", default=timezone.now)
+
+    class Meta:
+        verbose_name = "商品评价"
+        verbose_name_plural = "商品评价"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.username} - {self.product.name}"

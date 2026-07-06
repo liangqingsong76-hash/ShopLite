@@ -5,76 +5,56 @@
 {% block extra_head %}
 <style>
     .page-banner {
-        background: linear-gradient(135deg, #f5f3f0 0%, #e8e4de 100%);
-        padding: 48px;
-        border-radius: 16px;
+        background: linear-gradient(135deg, #f5f3f0 0%, #eae6e0 100%);
+        padding: 42px;
+        border-radius: var(--radius-lg);
         text-align: center;
-        margin-bottom: 32px;
+        margin-bottom: 28px;
     }
-    .page-banner h1 {
-        font-size: 32px;
-        margin: 0 0 8px;
-    }
-    .page-banner p {
-        color: var(--muted);
-        margin: 0;
-    }
-    .product-card .product-image {
-        position: relative;
-    }
-    .new-badge {
+    .page-banner h1 { font-size: 30px; margin: 0 0 6px; }
+    .page-banner p { color: var(--muted); margin: 0; font-size: 15px; }
+    .new-tag {
         position: absolute;
-        top: 12px;
-        left: 12px;
-        padding: 5px 12px;
+        top: 10px;
+        left: 10px;
+        padding: 3px 10px;
         background: var(--primary);
         color: #fff;
-        font-size: 12px;
-        font-weight: 600;
-        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 3px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="page-banner">
-    <h1>新品上市</h1>
+    <h1>✨ 新品上市</h1>
     <p>发现最新上架的精选好物</p>
 </div>
 
 <div class="product-grid">
     {% for product in products %}
         <article class="product-card">
-            <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
-                <div class="product-image">
+            <a href="{% url 'shop:product_detail' product.id %}" style="display:block;">
+                <div class="product-image" style="position:relative;">
                     {% if product.image %}
                         <img src="{{ product.image.url }}" alt="{{ product.name }}">
                     {% else %}
                         <span class="product-fallback"></span>
                     {% endif %}
-                    <span class="new-badge">NEW</span>
+                    <span class="new-tag">NEW</span>
                 </div>
                 <div class="product-name">{{ product.name }}</div>
                 <div class="product-meta">
-                    <span class="stars">*****</span>
-                    <span>{{ product.rating|default:"4.8" }}</span>
+                    <span class="stars">★★★★★</span>
+                    <span>{{ product.rating }}</span>
                 </div>
-                <div class="price">¥{{ product.price }}</div>
-                <div class="muted" style="font-size: 14px;">已售 {{ product.sales }}</div>
+                <div class="price" style="margin-top:4px;">¥{{ product.price }}</div>
             </a>
         </article>
     {% empty %}
         <div class="empty-note">暂无新品，敬请期待</div>
     {% endfor %}
-</div>
-
-<div style="display: flex; justify-content: center; gap: 8px; margin-top: 32px;">
-    <button class="btn" disabled>&lt;</button>
-    <button class="btn" style="background: var(--ink); color: #fff;">1</button>
-    <button class="btn">2</button>
-    <button class="btn">3</button>
-    <button class="btn">...</button>
-    <button class="btn">8</button>
-    <button class="btn">&gt;</button>
 </div>
 {% endblock %}

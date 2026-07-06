@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 优惠券{% endblock %}
+
+{% block extra_head %}
+<style>
+    .page-wrap { max-width: 900px; margin: 0 auto; }
+    .tabs { display: flex; gap: 0; margin-bottom: 22px; border-bottom: 1.5px solid var(--line); }
+    .tab {
+        padding: 12px 22px;
+        font-weight: 600;
+        font-size: 14px;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        color: var(--muted);
+        transition: all var(--transition);
+    }
+    .tab.active { border-bottom-color: var(--ink); color: var(--ink); }
+    .coupon-card {
+        display: grid;
+        grid-template-columns: 100px 1fr auto;
+        align-items: center;
+        gap: 20px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        margin-bottom: 10px;
+        background: #fff;
+        transition: all var(--transition);
+    }
+    .coupon-card:hover { border-color: var(--ink); box-shadow: var(--shadow-sm); }
+    .coupon-card.used { opacity: 0.45; }
+    .coupon-card .amt {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--danger);
+        text-align: center;
+    }
+    .coupon-card .amt .unit { font-size: 16px; font-weight: 600; }
+    .coupon-card .info h4 { margin: 0 0 6px; font-size: 15px; }
+    .coupon-card .info p { margin: 0; font-size: 13px; color: var(--muted); }
+    .coupon-card .expire { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .tag-used {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--line);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 6px;
+    }
+    .empty-state { text-align: center; padding: 64px 20px; color: var(--muted); }
+    .empty-state-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
+    <span>优惠券</span>
+</div>
+
+<div class="page-wrap">
+    <h1 style="margin:0 0 20px;">优惠券</h1>
+
+    <div class="tabs">
+        <span class="tab active">未使用<span style="color:var(--muted);margin-left:4px;">2</span></span>
+        <span class="tab">已使用<span style="color:var(--muted);margin-left:4px;">1</span></span>
+        <span class="tab">已过期<span style="color:var(--muted);margin-left:4px;">0</span></span>
+    </div>
+
+    <div class="coupon-card">
+        <div class="amt"><span class="unit">¥</span>30</div>
+        <div class="info">
+            <h4>全品类通用券</h4>
+            <p>满 ¥299 可用 · 全场通用</p>
+            <div class="expire">有效期至 2026-07-31</div>
+        </div>
+        <a class="btn btn-sm" href="{% url 'shop:category' %}">去使用</a>
+    </div>
+
+    <div class="coupon-card">
+        <div class="amt"><span class="unit">折</span>9</div>
+        <div class="info">
+            <h4>家居日用专享</h4>
+            <p>满 ¥199 可用 · 限家居生活品类</p>
+            <div class="expire">有效期至 2026-07-15</div>
+        </div>
+        <a class="btn btn-sm" href="{% url 'shop:category' %}?category=家居生活">去使用</a>
+    </div>
+
+    <h3 style="margin:28px 0 14px;">已使用</h3>
+    <div class="coupon-card used">
+        <div class="amt" style="color:var(--muted);"><span class="unit">¥</span>10</div>
+        <div class="info">
+            <h4>新人专享券 <span class="tag-used">已使用</span></h4>
+            <p>满 ¥99 可用 · 全场通用</p>
+            <div class="expire">已使用于 2026-07-03</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,40 +4,83 @@
 
 {% block extra_head %}
 <style>
-    .order-tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+    .order-page { max-width: 1100px; margin: 0 auto; }
+    .order-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 22px;
+        border-bottom: 1.5px solid var(--line);
+    }
     .order-tab {
-        padding: 12px 24px;
+        padding: 12px 22px;
         font-weight: 600;
+        font-size: 14px;
         border-bottom: 2px solid transparent;
         cursor: pointer;
         color: var(--muted);
+        text-decoration: none;
+        transition: all var(--transition);
     }
+    .order-tab:hover { color: var(--ink); }
     .order-tab.active { border-bottom-color: var(--ink); color: var(--ink); }
     .order-card {
-        border: 1px solid var(--line); border-radius: 8px; margin-bottom: 16px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        margin-bottom: 14px;
         overflow: hidden;
+        background: #fff;
     }
-    .order-header {
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 14px 20px; background: #fafafa; border-bottom: 1px solid var(--line);
+    .order-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 20px;
+        background: #fafaf8;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
     }
-    .order-no { font-weight: 600; }
-    .order-status { color: var(--accent); font-weight: 600; }
-    .order-body { padding: 16px 20px; }
-    .order-item {
-        display: grid; grid-template-columns: 60px 1fr auto; gap: 16px;
-        align-items: center; padding: 10px 0;
+    .order-no { font-weight: 600; color: var(--muted); }
+    .order-status { font-weight: 700; }
+    .order-status.pending { color: var(--warn); }
+    .order-status.paid { color: var(--primary); }
+    .order-status.shipped { color: #5b8c5a; }
+    .order-status.completed { color: var(--muted); }
+    .order-status.cancelled { color: var(--muted); }
+    .order-status.refund { color: var(--danger); }
+    .order-card-body { padding: 14px 20px; }
+    .order-item-row {
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        gap: 14px;
+        align-items: center;
+        padding: 8px 0;
     }
-    .order-item + .order-item { border-top: 1px solid var(--line); }
-    .order-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
-    .order-footer {
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 14px 20px; border-top: 1px solid var(--line);
+    .order-item-row + .order-item-row { border-top: 1px solid var(--line); }
+    .order-item-img {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        background: var(--soft);
     }
-    .order-total { font-size: 18px; font-weight: 800; }
-    .order-actions { display: flex; gap: 10px; }
-    .empty-orders { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty-orders .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .order-item-img img { width: 100%; height: 100%; object-fit: cover; }
+    .order-item-name { font-weight: 600; font-size: 14px; }
+    .order-item-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .order-item-price { font-weight: 700; white-space: nowrap; }
+    .order-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 20px;
+        border-top: 1px solid var(--line);
+    }
+    .order-total { font-size: 17px; font-weight: 800; }
+    .order-empty {
+        text-align: center;
+        padding: 64px 20px;
+        color: var(--muted);
+    }
+    .order-empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
 </style>
 {% endblock %}
 
@@ -48,53 +91,60 @@
     <span>我的订单</span>
 </div>
 
-<h1 style="margin: 0 0 24px;">我的订单</h1>
+<div class="order-page">
+    <h1 style="margin: 0 0 20px;">我的订单</h1>
 
-<div class="order-tabs">
-    <a class="order-tab {% if not status_filter %}active{% endif %}" href="{% url 'shop:order_list' %}">全部</a>
-    <a class="order-tab {% if status_filter == 'pending' %}active{% endif %}" href="?status=pending">待付款</a>
-    <a class="order-tab {% if status_filter == 'paid' %}active{% endif %}" href="?status=paid">待发货</a>
-    <a class="order-tab {% if status_filter == 'shipped' %}active{% endif %}" href="?status=shipped">待收货</a>
-    <a class="order-tab {% if status_filter == 'completed' %}active{% endif %}" href="?status=completed">已完成</a>
-</div>
+    <div class="order-tabs">
+        <a class="order-tab {% if not status_filter %}active{% endif %}" href="{% url 'shop:order_list' %}">全部</a>
+        <a class="order-tab {% if status_filter == 'pending' %}active{% endif %}" href="?status=pending">待付款</a>
+        <a class="order-tab {% if status_filter == 'paid' %}active{% endif %}" href="?status=paid">待发货</a>
+        <a class="order-tab {% if status_filter == 'shipped' %}active{% endif %}" href="?status=shipped">待收货</a>
+        <a class="order-tab {% if status_filter == 'completed' %}active{% endif %}" href="?status=completed">已完成</a>
+        <a class="order-tab {% if status_filter == 'cancelled' %}active{% endif %}" href="?status=cancelled">已取消</a>
+    </div>
 
-{% if orders %}
-    {% for order in orders %}
-        <div class="order-card">
-            <div class="order-header">
-                <span class="order-no">订单号：{{ order.order_no }}</span>
-                <span class="order-status">{{ order.get_status_display }}</span>
-            </div>
-            <div class="order-body">
-                {% for item in order.items.all %}
-                    <div class="order-item">
-                        {% if item.product_image %}
-                            <img src="{{ item.product_image }}" alt="{{ item.product_name }}">
-                        {% else %}
-                            <span class="product-fallback" style="width:60px;height:60px;"></span>
-                        {% endif %}
-                        <div>
-                            <div style="font-weight:600;">{{ item.product_name }}</div>
-                            <div class="muted" style="font-size:13px;">x{{ item.quantity }} | ¥{{ item.price }}</div>
+    {% if orders %}
+        {% for order in orders %}
+            <div class="order-card">
+                <div class="order-card-header">
+                    <span class="order-no">订单号：{{ order.order_no }}</span>
+                    <span class="order-status {{ order.status }}">{{ order.get_status_display }}</span>
+                </div>
+                <div class="order-card-body">
+                    {% for item in order.items.all %}
+                        <div class="order-item-row">
+                            <div class="order-item-img">
+                                {% if item.product_image %}
+                                    <img src="{{ item.product_image }}" alt="{{ item.product_name }}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\'product-fallback\' style=\'width:56px;height:56px;display:block\'></span>';">
+                                {% endif %}
+                                {% if not item.product_image %}<span class="product-fallback" style="width:56px;height:56px;display:block;"></span>{% endif %}
+                            </div>
+                            <div>
+                                <div class="order-item-name">{{ item.product_name }}</div>
+                                <div class="order-item-meta">x{{ item.quantity }} · ¥{{ item.price }}</div>
+                            </div>
+                            <div class="order-item-price">¥{{ item.subtotal }}</div>
                         </div>
-                        <strong>¥{{ item.subtotal }}</strong>
+                    {% endfor %}
+                </div>
+                <div class="order-card-footer">
+                    <span style="font-size:13px;color:var(--muted);">共 {{ order.items.count }} 件商品</span>
+                    <span class="order-total">实付 <span class="price-red">¥{{ order.pay_amount }}</span></span>
+                    <div style="display:flex;gap:8px;">
+                        {% if order.status == 'pending' %}
+                            <a class="btn btn-sm btn-primary" href="{% url 'shop:mock_payment' order.id %}">立即支付</a>
+                        {% endif %}
+                        <a class="btn btn-sm" href="{% url 'shop:order_detail' order.id %}">查看详情</a>
                     </div>
-                {% endfor %}
-            </div>
-            <div class="order-footer">
-                <span>共 {{ order.items.count }} 件商品</span>
-                <span class="order-total">实付：<span class="price-red">¥{{ order.pay_amount }}</span></span>
-                <div class="order-actions">
-                    <a class="btn" href="{% url 'shop:order_detail' order.id %}">查看详情</a>
                 </div>
             </div>
+        {% endfor %}
+    {% else %}
+        <div class="order-empty">
+            <div class="order-empty-icon">📋</div>
+            <p style="font-size:16px;">暂无订单</p>
+            <a class="btn btn-primary" href="{% url 'shop:category' %}" style="margin-top:12px;">去逛逛</a>
         </div>
-    {% endfor %}
-{% else %}
-    <div class="empty-orders">
-        <div class="empty-icon">O</div>
-        <p style="font-size: 16px; margin-bottom: 8px;">暂无订单</p>
-        <a class="btn" href="{% url 'shop:category' %}">去逛逛</a>
-    </div>
-{% endif %}
+    {% endif %}
+</div>
 {% endblock %}

@@ -4,144 +4,305 @@
 
 {% block extra_head %}
 <style>
-    .price-filter { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-    .price-filter input { width: 80px; height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; }
-    .price-filter button { padding: 9px 16px; }
-    .view-toggle { display: flex; gap: 8px; margin-left: auto; }
-    .view-btn { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 6px; }
-    .view-btn.active { background: var(--ink); color: #fff; }
-    .brand-card {
+    .cat-layout { display: grid; grid-template-columns: 220px 1fr; gap: 32px; }
+
+    .cat-sidebar {
+        background: #fafaf9;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+    }
+    .cat-sidebar h3 { margin: 0 0 16px; font-size: 16px; }
+
+    .sidebar-cat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--ink);
+        text-decoration: none;
+    }
+    .sidebar-cat:hover { background: rgba(0,0,0,0.04); }
+    .sidebar-cat.active { background: var(--ink); color: #fff; }
+    .sidebar-cat .arrow { font-size: 10px; transition: transform 0.2s; }
+    .sidebar-cat.active .arrow { transform: rotate(90deg); }
+
+    .sidebar-subs {
+        padding: 4px 0 4px 32px;
+        margin-bottom: 4px;
+        display: none;
+    }
+    .sidebar-subs.show { display: block; }
+    .sidebar-sub {
+        display: block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: var(--muted);
+        text-decoration: none;
+        transition: all 0.15s;
+    }
+    .sidebar-sub:hover { color: var(--ink); background: rgba(0,0,0,0.03); }
+    .sidebar-sub.active { color: var(--primary); font-weight: 600; }
+
+    .cat-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .cat-toolbar h2 { margin: 0; font-size: 22px; white-space: nowrap; }
+    .cat-count { color: var(--muted); font-size: 14px; white-space: nowrap; }
+    .cat-sort { display: flex; gap: 4px; margin-left: auto; }
+    .sort-pill {
+        padding: 7px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid var(--line);
+        background: #fff;
+        cursor: pointer;
+        color: var(--ink);
+        transition: all 0.15s;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .sort-pill:hover { border-color: var(--ink); }
+    .sort-pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+    .active-filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .active-filters-label {
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 500;
+    }
+    .filter-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px 4px 14px;
+        border-radius: 20px;
+        background: rgba(59,130,246,0.1);
+        color: var(--primary);
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .filter-tag-remove {
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1;
+        transition: opacity 0.15s;
+    }
+    .filter-tag-remove:hover { opacity: 0.6; }
+    .filter-clear-all {
+        font-size: 13px;
+        color: var(--muted);
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .filter-clear-all:hover { color: var(--danger); }
+
+    .filter-section { margin-bottom: 14px; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+    .filter-section:last-child { border-bottom: 0; }
+    .filter-section-label {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .filter-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+    .f-pill {
+        padding: 4px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        border: 1px solid var(--line);
+        background: #fff;
+        cursor: pointer;
+        transition: all 0.15s;
+        color: var(--ink);
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .f-pill:hover { border-color: var(--ink); }
+    .f-pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+    .price-input-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+    }
+    .price-input-row input {
+        width: 90px;
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-size: 13px;
+        outline: none;
+    }
+    .price-input-row input:focus { border-color: var(--ink); }
+    .price-input-row button {
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 6px;
+        border: 1px solid var(--ink);
+        background: #fff;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.15s;
+    }
+    .price-input-row button:hover { background: var(--ink); color: #fff; }
+
+    .product-card {
+        position: relative;
+        min-width: 0;
+        border-radius: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .product-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+
+    .product-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 2;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+    }
+    .badge-new { background: var(--primary); }
+    .badge-hot { background: var(--danger); }
+    .badge-rec { background: var(--accent); }
+
+    .product-image-wrap {
+        position: relative;
+        aspect-ratio: 1.08 / 1;
+        border-radius: 10px;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 42%, rgba(255,255,255,0.8), rgba(255,255,255,0) 32%),
+                    linear-gradient(135deg, #eee8df, #f8f6f2);
+        display: grid;
+        place-items: center;
+    }
+    .product-image-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .quick-add {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        cursor: pointer;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .product-card:hover .quick-add { opacity: 1; transform: translateY(0); }
+    .quick-add:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+    .product-info { padding: 10px 4px 0; }
+    .product-title {
+        font-weight: 600;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 6px;
+        color: var(--ink);
+    }
+    .product-tags { display: flex; gap: 6px; margin-bottom: 8px; }
+    .product-tag {
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+    }
+    .product-price-row { display: flex; align-items: center; justify-content: space-between; }
+    .product-price { font-size: 17px; font-weight: 800; color: var(--danger); }
+    .product-old-price { font-size: 12px; color: #9a9a9a; text-decoration: line-through; margin-left: 8px; }
+    .product-sales { font-size: 12px; color: var(--muted); }
+
+    .empty-state {
         text-align: center;
-        padding: 32px;
+        padding: 80px 20px;
+        color: var(--muted);
+    }
+    .empty-state-icon {
+        font-size: 56px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+    .empty-state p { margin: 8px 0; font-size: 15px; }
+    .empty-state a { color: var(--primary); font-weight: 600; }
+
+    .brand-card {
+        display: block;
+        text-align: center;
+        padding: 28px 20px;
         border-radius: 12px;
         background: #fafaf9;
         border: 1px solid var(--line);
-        transition: all 0.3s;
+        transition: all 0.25s;
+        text-decoration: none;
+        color: var(--ink);
     }
-    .brand-card:hover {
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        transform: translateY(-2px);
-    }
-    .brand-icon {
-        width: 80px;
-        height: 80px;
-        margin: 0 auto 16px;
+    .brand-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-3px); }
+    .brand-icon-block {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 14px;
         border-radius: 50%;
         background: linear-gradient(145deg, #fff, #f0f0f0);
         display: grid;
         place-items: center;
-        font-size: 32px;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--accent);
     }
-    .brand-name { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-    .brand-count { font-size: 14px; color: var(--muted); }
-    .new-badge {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        padding: 4px 10px;
-        background: var(--primary);
-        color: #fff;
-        font-size: 12px;
-        border-radius: 4px;
+    .brand-card-name { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .brand-card-count { font-size: 13px; color: var(--muted); }
+
+    @media (max-width: 1100px) {
+        .cat-layout { grid-template-columns: 1fr; }
+        .cat-sidebar { position: static; max-height: none; margin-bottom: 20px; }
+        .cat-toolbar { flex-wrap: wrap; }
+        .cat-sort { margin-left: 0; }
     }
-    .hot-badge {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        padding: 4px 10px;
-        background: var(--danger);
-        color: #fff;
-        font-size: 12px;
-        border-radius: 4px;
-    }
-    .category-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 14px;
-        border-radius: 8px;
-        color: var(--ink);
-        transition: all 0.2s;
-        text-decoration: none;
-    }
-    .category-item:hover {
-        background: rgba(0,0,0,0.03);
-    }
-    .category-item.active {
-        background: var(--primary);
-        color: #fff;
-    }
-    .category-item.active .tiny-icon {
-        color: #fff;
-    }
-    .subcategories {
-        padding-left: 30px;
-        margin-bottom: 8px;
-        display: none;
-    }
-    .subcategories.show {
-        display: block;
-    }
-    .subcategory-item {
-        display: block;
-        padding: 6px 14px;
-        font-size: 14px;
-        color: var(--muted);
-        border-radius: 6px;
-        transition: all 0.2s;
-        text-decoration: none;
-    }
-    .subcategory-item:hover {
-        color: var(--ink);
-        background: rgba(0,0,0,0.03);
-    }
-    .subcategory-item.active {
-        color: var(--primary);
-        font-weight: 500;
-    }
-    .category-name {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .expand-icon {
-        font-size: 10px;
-        transition: transform 0.2s;
-        cursor: pointer;
-        padding: 4px;
-    }
-    .category-item.active .expand-icon {
-        transform: rotate(90deg);
-    }
-    .pill {
-        display: inline-block;
-        padding: 5px 14px;
-        border-radius: 20px;
-        font-size: 14px;
-        border: 1px solid var(--line);
-        background: #fff;
-        cursor: pointer;
-        text-decoration: none;
-        color: var(--ink);
-        transition: all 0.2s;
-    }
-    .pill:hover { border-color: var(--ink); }
-    .pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
-    .filters { margin-bottom: 24px; }
-    .filter-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--line);
-        flex-wrap: wrap;
-    }
-    .filter-row strong { min-width: 60px; font-size: 14px; }
-    .empty-note { text-align: center; padding: 40px; color: var(--muted); }
 </style>
 {% endblock %}
 
 {% block content %}
+
 <div class="crumb">
     {% for item in breadcrumbs %}
         {% if item.url %}
@@ -158,171 +319,344 @@
 </div>
 
 {% if current_filter == "brand" %}
-    <div>
-        <h2 style="font-size: 24px; margin: 20px 0 32px;">品牌馆</h2>
-        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px;">
-            {% for brand in brands %}
-                <a href="{% url 'shop:category' %}?brand={{ brand.name }}" class="brand-card">
-                    <div class="brand-icon">{{ brand.name|first }}</div>
-                    <div class="brand-name">{{ brand.name }}</div>
-                    <div class="brand-count">{{ brand.count }}件商品</div>
-                </a>
-            {% empty %}
-                <div class="empty-note">暂无品牌数据</div>
-            {% endfor %}
-        </div>
-        <h3 style="font-size: 18px; margin: 32px 0 20px;">品牌精选</h3>
-        <div class="product-grid">
+
+<h2 style="font-size: 26px; margin: 16px 0 28px;">品牌馆</h2>
+<div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px;">
+    {% for brand in brands %}
+        <a class="brand-card" href="{% url 'shop:category' %}?filter=brand&brand={{ brand.name }}">
+            <div class="brand-icon-block">{{ brand.name|first }}</div>
+            <div class="brand-card-name">{{ brand.name }}</div>
+            <div class="brand-card-count">{{ brand.count }} 件商品</div>
+        </a>
+    {% empty %}
+        <div class="empty-state"><div class="empty-state-icon">B</div><p>暂无品牌数据</p></div>
+    {% endfor %}
+</div>
+
+<h3 style="font-size: 18px; margin: 32px 0 18px;">品牌精选</h3>
+<div class="product-grid" id="productList">
             {% for product in products %}
                 <article class="product-card">
-                    <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
-                        <div class="product-image">
+                    <a href="{% url 'shop:product_detail' product.id %}" style="display: block; color: inherit; text-decoration: none;">
+                        <div class="product-image-wrap">
                             {% if product.image %}
-                                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
                             {% else %}
                                 <span class="product-fallback"></span>
                             {% endif %}
+                            <span class="quick-add" onclick="event.preventDefault(); quickAddToCart({{ product.id }}, this)" title="加入购物车">+</span>
                         </div>
-                        <div class="product-name">{{ product.name }}</div>
-                        <div class="product-meta">
-                            <span class="stars">*****</span>
-                            <span>{{ product.rating|default:"4.8" }}</span>
+                        <div class="product-info">
+                            <div class="product-title">{{ product.name }}</div>
+                            <div class="product-tags">
+                                <span class="product-tag">{{ product.rating }}分</span>
+                                <span class="product-tag">已售{{ product.sales }}</span>
+                            </div>
+                            <div class="product-price-row">
+                                <span class="product-price">¥{{ product.price }}</span>
+                                {% if product.original_price and product.original_price > product.price %}
+                                    <span class="product-old-price">¥{{ product.original_price }}</span>
+                                {% endif %}
+                            </div>
                         </div>
-                        <div class="price">¥{{ product.price }}</div>
-                        <div class="muted" style="font-size: 14px;">已售 {{ product.sales }}</div>
                     </a>
                 </article>
             {% empty %}
-                <div class="empty-note">暂无品牌商品</div>
+                <div class="empty-state"><div class="empty-state-icon">B</div><p>暂无品牌商品</p></div>
+            {% endfor %}
+        </div>
+
+{% else %}
+
+<section class="cat-layout" id="categoryApp">
+    <aside class="cat-sidebar">
+        <h3>全部分类</h3>
+        {% for category in categories %}
+            <div>
+                <a class="sidebar-cat{% if category.name == active_category %} active{% endif %}"
+                   href="{% url 'shop:category' %}?category={{ category.name }}"
+                   onclick="toggleSidebarSub(event, this)">
+                    <span>{{ category.name }}</span>
+                    <span class="arrow">›</span>
+                </a>
+                {% if category.subcategories %}
+                    <div class="sidebar-subs{% if category.name == active_category %} show{% endif %}">
+                        <a class="sidebar-sub{% if not active_subcategory %} active{% endif %}"
+                           href="{% url 'shop:category' %}?category={{ category.name }}">全部</a>
+                        {% for child in category.subcategories %}
+                            <a class="sidebar-sub{% if child.name == active_subcategory %} active{% endif %}"
+                               href="{% url 'shop:category' %}?category={{ category.name }}&subcategory={{ child.name }}">
+                                {{ child.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </aside>
+
+    <div>
+        <div class="cat-toolbar">
+            <h2>{{ page_title|default:"全部商品" }}</h2>
+            <span class="cat-count" id="productCount">共 <strong>{{ products|length }}</strong> 件</span>
+            <div class="cat-sort">
+                <a class="sort-pill{% if not sort_by %} active{% endif %}" href="#" data-sort="">综合</a>
+                <a class="sort-pill{% if sort_by == 'sales' %} active{% endif %}" href="#" data-sort="sales">销量</a>
+                <a class="sort-pill{% if sort_by == 'price_asc' %} active{% endif %}" href="#" data-sort="price_asc">价格↑</a>
+                <a class="sort-pill{% if sort_by == 'price_desc' %} active{% endif %}" href="#" data-sort="price_desc">价格↓</a>
+                <a class="sort-pill{% if sort_by == 'rating' %} active{% endif %}" href="#" data-sort="rating">评价</a>
+            </div>
+        </div>
+
+        <div class="active-filters" id="activeFilters">
+            <span class="active-filters-label">当前筛选：</span>
+            {% if active_category %}
+                <span class="filter-tag">
+                    {% if active_subcategory %}{{ active_subcategory }}{% else %}{{ active_category }}{% endif %}
+                    <span class="filter-tag-remove" data-remove="category">&times;</span>
+                </span>
+            {% endif %}
+            {% if brand_filter %}
+                <span class="filter-tag">
+                    {{ brand_filter }}
+                    <span class="filter-tag-remove" data-remove="brand">&times;</span>
+                </span>
+            {% endif %}
+            {% if price_min or price_max %}
+                <span class="filter-tag">
+                    价格: {% if price_min %}¥{{ price_min }}{% else %}0{% endif %}-{% if price_max %}¥{{ price_max }}{% else %}不限{% endif %}
+                    <span class="filter-tag-remove" data-remove="price">&times;</span>
+                </span>
+            {% endif %}
+            {% if keyword %}
+                <span class="filter-tag">
+                    搜索: {{ keyword }}
+                    <span class="filter-tag-remove" data-remove="q">&times;</span>
+                </span>
+            {% endif %}
+            {% if active_category or brand_filter or price_min or price_max or keyword %}
+                <a class="filter-clear-all" href="{% url 'shop:category' %}" id="clearAllFilters">清除全部</a>
+            {% endif %}
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-section-label">品牌</div>
+            <div class="filter-pills" id="brandPills">
+                <a class="f-pill{% if not brand_filter %} active{% endif %}" href="#" data-brand="">全部</a>
+                {% for brand in brands %}
+                    <a class="f-pill{% if brand.name == brand_filter %} active{% endif %}" href="#" data-brand="{{ brand.name }}">{{ brand.name }}</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-section-label">价格区间</div>
+            <div class="filter-pills" id="pricePills">
+                <a class="f-pill{% if not price_min and not price_max %} active{% endif %}" href="#" data-price-min="" data-price-max="">全部</a>
+                <a class="f-pill{% if price_min == '0' and price_max == '99' %} active{% endif %}" href="#" data-price-min="0" data-price-max="99">0-99元</a>
+                <a class="f-pill{% if price_min == '100' and price_max == '199' %} active{% endif %}" href="#" data-price-min="100" data-price-max="199">100-199元</a>
+                <a class="f-pill{% if price_min == '200' and price_max == '299' %} active{% endif %}" href="#" data-price-min="200" data-price-max="299">200-299元</a>
+                <a class="f-pill{% if price_min == '300' and price_max == '499' %} active{% endif %}" href="#" data-price-min="300" data-price-max="499">300-499元</a>
+                <a class="f-pill{% if price_min == '500' %} active{% endif %}" href="#" data-price-min="500" data-price-max="">500元以上</a>
+            </div>
+            <form class="price-input-row" id="priceCustomForm" onsubmit="return applyPriceRange()">
+                <input type="number" id="priceMinInput" placeholder="¥最低价" value="{{ price_min }}">
+                <span style="color: var(--muted);">-</span>
+                <input type="number" id="priceMaxInput" placeholder="¥最高价" value="{{ price_max }}">
+                <button type="submit">确定</button>
+            </form>
+        </div>
+
+        <div class="product-grid" id="productList">
+            {% for product in products %}
+                <article class="product-card">
+                    <a href="{% url 'shop:product_detail' product.id %}" style="display: block; color: inherit; text-decoration: none;">
+                        <div class="product-image-wrap">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                            {% else %}
+                                <span class="product-fallback"></span>
+                            {% endif %}
+                            {% if product.is_new %}
+                                <span class="product-badge badge-new">NEW</span>
+                            {% elif product.is_hot %}
+                                <span class="product-badge badge-hot">HOT</span>
+                            {% endif %}
+                            <span class="quick-add" onclick="event.preventDefault(); quickAddToCart({{ product.id }}, this)" title="加入购物车">+</span>
+                        </div>
+                        <div class="product-info">
+                            <div class="product-title">{{ product.name }}</div>
+                            <div class="product-tags">
+                                <span class="product-tag">{{ product.rating }}分</span>
+                                <span class="product-tag">已售{{ product.sales }}</span>
+                            </div>
+                            <div class="product-price-row">
+                                <span>
+                                    <span class="product-price">¥{{ product.price }}</span>
+                                    {% if product.original_price and product.original_price > product.price %}
+                                        <span class="product-old-price">¥{{ product.original_price }}</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </article>
+            {% empty %}
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-state-icon">?</div>
+                    <p>暂无匹配的商品</p>
+                    <p>试试调整筛选条件，或 <a href="{% url 'shop:category' %}">查看全部商品</a></p>
+                </div>
             {% endfor %}
         </div>
     </div>
-{% else %}
-    <section style="display: grid; grid-template-columns: 230px 1fr; gap: 32px;">
-        <aside>
-            <h3 style="margin: 0 0 14px;">全部分类</h3>
-            <div class="category-list">
-                {% for category in categories %}
-                    <div>
-                        <a class="category-item {% if category.name == active_category %}active{% endif %}" href="{% url 'shop:category' %}?category={{ category.name }}">
-                            <span class="category-name"><span class="tiny-icon">o</span>{{ category.name }}</span>
-                            <span class="expand-icon" onclick="event.preventDefault(); event.stopPropagation(); toggleSubcategories(this)">›</span>
-                        </a>
-                        {% if category.subcategories %}
-                            <div class="subcategories {% if category.name == active_category %}show{% endif %}" id="subcats-{{ category.id }}">
-                                {% for child in category.subcategories %}
-                                    <a class="subcategory-item {% if child.name == active_subcategory %}active{% endif %}" href="{% url 'shop:category' %}?category={{ category.name }}&subcategory={{ child.name }}">
-                                        {{ child.name }}
-                                    </a>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
-        </aside>
+</section>
 
-        <div>
-            <div class="filters">
-                {% if active_category %}
-                <div class="filter-row">
-                    <strong>子分类：</strong>
-                    <a class="pill {% if not active_subcategory %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}">全部</a>
-                    {% for category in categories %}
-                        {% if category.name == active_category %}
-                            {% for child in category.subcategories %}
-                                <a class="pill {% if child.name == active_subcategory %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ child.name }}">{{ child.name }}</a>
-                            {% endfor %}
-                        {% endif %}
-                    {% endfor %}
-                </div>
-                {% endif %}
-                <div class="filter-row">
-                    <strong>品牌：</strong>
-                    <a class="pill {% if not brand_filter %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}">全部</a>
-                    {% for brand in brands %}
-                        <a class="pill {% if brand.name == brand_filter %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand.name }}">{{ brand.name }}</a>
-                    {% endfor %}
-                </div>
-                <div class="filter-row">
-                    <strong>价格：</strong>
-                    <a class="pill {% if not price_min and not price_max %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}">全部</a>
-                    <a class="pill {% if price_min == '0' and price_max == '99' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=0&price_max=99">0-99元</a>
-                    <a class="pill {% if price_min == '100' and price_max == '199' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=100&price_max=199">100-199元</a>
-                    <a class="pill {% if price_min == '200' and price_max == '299' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=200&price_max=299">200-299元</a>
-                    <a class="pill {% if price_min == '300' and price_max == '499' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=300&price_max=499">300-499元</a>
-                    <a class="pill {% if price_min == '500' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min=500">500元以上</a>
-                    <form class="price-filter" method="get" action="{% url 'shop:category' %}">
-                        <input type="hidden" name="category" value="{{ active_category }}">
-                        <input type="hidden" name="subcategory" value="{{ active_subcategory }}">
-                        <input type="hidden" name="brand" value="{{ brand_filter }}">
-                        <input type="number" name="price_min" placeholder="最低价" value="{{ price_min }}">
-                        <span>-</span>
-                        <input type="number" name="price_max" placeholder="最高价" value="{{ price_max }}">
-                        <button class="btn" type="submit" style="padding: 6px 14px; font-size: 14px;">确定</button>
-                    </form>
-                </div>
-                <div class="filter-row">
-                    <strong>综合：</strong>
-                    <a class="pill {% if not sort_by %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}">综合排序</a>
-                    <a class="pill {% if sort_by == 'sales' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}&sort_by=sales">销量</a>
-                    <a class="pill {% if current_sort == 'new' %}active{% endif %}" href="{% url 'shop:category' %}?sort=new">新品</a>
-                    <a class="pill {% if sort_by == 'price_asc' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}&sort_by=price_asc">价格升序</a>
-                    <a class="pill {% if sort_by == 'price_desc' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}&sort_by=price_desc">价格降序</a>
-                    <a class="pill {% if sort_by == 'rating' %}active{% endif %}" href="{% url 'shop:category' %}?category={{ active_category }}&subcategory={{ active_subcategory }}&brand={{ brand_filter }}&price_min={{ price_min }}&price_max={{ price_max }}&sort_by=rating">评价</a>
-                </div>
-            </div>
-
-            <div class="product-grid">
-                {% for product in products %}
-                    <article class="product-card">
-                        <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
-                            <div class="product-image">
-                                {% if product.image %}
-                                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                                {% else %}
-                                    <span class="product-fallback"></span>
-                                {% endif %}
-                                {% if product.is_new %}
-                                    <span class="new-badge">NEW</span>
-                                {% elif product.is_hot %}
-                                    <span class="hot-badge">HOT</span>
-                                {% endif %}
-                            </div>
-                            <div class="product-name">{{ product.name }}</div>
-                            <div class="product-meta">
-                                <span class="stars">*****</span>
-                                <span>{{ product.rating }}</span>
-                            </div>
-                            <div class="price">¥{{ product.price }}</div>
-                            <div class="muted" style="font-size: 14px;">已售 {{ product.sales }}</div>
-                        </a>
-                        <form method="post" action="{% url 'shop:add_to_cart' product.id %}" style="margin-top: -28px; text-align: right;">
-                            {% csrf_token %}
-                            <button class="round-add" type="submit" aria-label="加入购物车">+</button>
-                        </form>
-                    </article>
-                {% empty %}
-                    <div class="empty-note">暂无匹配商品，请调整筛选条件。</div>
-                {% endfor %}
-            </div>
-
-            <div style="display: flex; justify-content: center; gap: 8px; margin-top: 32px;">
-                <span class="muted">共 {{ products|length }} 件商品</span>
-            </div>
-        </div>
-    </section>
 {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    var currentParams = {
+        category: '{{ active_category|default:"" }}',
+        subcategory: '{{ active_subcategory|default:"" }}',
+        brand: '{{ brand_filter|default:"" }}',
+        price_min: '{{ price_min|default:"" }}',
+        price_max: '{{ price_max|default:"" }}',
+        q: '{{ keyword|default:"" }}',
+        sort_by: '{{ sort_by|default:"" }}'
+    };
+
+    function cleanParams(obj) {
+        var cleaned = {};
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key) && obj[key] !== '' && obj[key] !== null && obj[key] !== undefined) {
+                cleaned[key] = obj[key];
+            }
+        }
+        return cleaned;
+    }
+
+    function buildURL(overrides) {
+        var params = {};
+        for (var key in currentParams) {
+            if (currentParams.hasOwnProperty(key)) {
+                params[key] = currentParams[key];
+            }
+        }
+        for (var k in overrides) {
+            if (overrides.hasOwnProperty(k)) {
+                if (overrides[k] === '' || overrides[k] === null || overrides[k] === undefined) {
+                    delete params[k];
+                } else {
+                    params[k] = overrides[k];
+                }
+            }
+        }
+        var query = [];
+        for (var key in params) {
+            if (params.hasOwnProperty(key) && params[key] !== '') {
+                query.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
+            }
+        }
+        return '{% url "shop:category" %}' + (query.length ? '?' + query.join('&') : '');
+    }
+
+    function navigateTo(overrides) {
+        window.location.href = buildURL(overrides);
+    }
+
+    document.querySelectorAll('.sort-pill').forEach(function(pill) {
+        pill.addEventListener('click', function(e) {
+            e.preventDefault();
+            navigateTo({ sort_by: this.getAttribute('data-sort') });
+        });
+    });
+
+    document.querySelectorAll('#brandPills .f-pill').forEach(function(pill) {
+        pill.addEventListener('click', function(e) {
+            e.preventDefault();
+            navigateTo({ brand: this.getAttribute('data-brand') });
+        });
+    });
+
+    document.querySelectorAll('#pricePills .f-pill').forEach(function(pill) {
+        pill.addEventListener('click', function(e) {
+            e.preventDefault();
+            navigateTo({ price_min: this.getAttribute('data-price-min'), price_max: this.getAttribute('data-price-max') });
+        });
+    });
+
+    document.querySelectorAll('.filter-tag-remove').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var removeKey = this.getAttribute('data-remove');
+            var overrides = {};
+            if (removeKey === 'category') {
+                overrides = { category: '', subcategory: '' };
+            } else if (removeKey === 'brand') {
+                overrides = { brand: '' };
+            } else if (removeKey === 'price') {
+                overrides = { price_min: '', price_max: '' };
+            } else if (removeKey === 'q') {
+                overrides = { q: '' };
+            }
+            navigateTo(overrides);
+        });
+    });
+
+    window.applyPriceRange = function() {
+        var min = document.getElementById('priceMinInput').value.trim();
+        var max = document.getElementById('priceMaxInput').value.trim();
+        navigateTo({ price_min: min, price_max: max });
+        return false;
+    };
+
+    window.quickAddToCart = function(productId, el) {
+        var fd = new FormData();
+        fd.append('csrfmiddlewaretoken', getCategoryCSRFToken());
+        fd.append('quantity', '1');
+        var originalText = el.textContent;
+        el.textContent = '...';
+        el.style.pointerEvents = 'none';
+        fetch('/cart/add/' + productId + '/', {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function() {
+            el.textContent = '✓';
+            setTimeout(function() {
+                el.textContent = originalText;
+                el.style.pointerEvents = '';
+            }, 1200);
+        }).catch(function() {
+            el.textContent = originalText;
+            el.style.pointerEvents = '';
+        });
+    };
+
+    window.getCategoryCSRFToken = function() {
+        var input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input) return input.value;
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var c = cookies[i].trim();
+            if (c.indexOf('csrftoken=') === 0) return c.substring(10);
+        }
+        return '';
+    };
+})();
+</script>
 
 <script>
-function toggleSubcategories(el) {
-    var parent = el.closest('.category-item');
-    if (parent) {
-        var next = parent.nextElementSibling;
-        if (next && next.classList.contains('subcategories')) {
-            next.classList.toggle('show');
-        }
+function toggleSidebarSub(e, el) {
+    e.preventDefault();
+    var next = el.nextElementSibling;
+    if (next && next.classList.contains('sidebar-subs')) {
+        next.classList.toggle('show');
     }
+    window.location.href = el.getAttribute('href');
 }
 </script>
 {% endblock %}

@@ -4,9 +4,9 @@
 
 {% block extra_head %}
 <style>
-    .favorite-layout { max-width: 1200px; margin: 0 auto; }
-    .empty-favorites { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty-favorites .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .fav-page { max-width: 1200px; margin: 0 auto; }
+    .fav-empty { text-align: center; padding: 64px 20px; color: var(--muted); }
+    .fav-empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
 </style>
 {% endblock %}
 
@@ -17,8 +17,8 @@
     <span>我的收藏</span>
 </div>
 
-<div class="favorite-layout">
-    <h1 style="margin: 0 0 24px;">我的收藏（{{ favorites|length }}）</h1>
+<div class="fav-page">
+    <h1 style="margin:0 0 24px;">我的收藏（{{ favorites|length }}）</h1>
 
     {% if favorites %}
         <div class="product-grid">
@@ -34,35 +34,34 @@
                         </div>
                         <div class="product-name">{{ fav.product.name }}</div>
                         <div class="product-meta">
-                            <span class="stars">*****</span>
+                            <span class="stars">★★★★★</span>
                             <span>{{ fav.product.rating }}</span>
-                            <span>已售 {{ fav.product.sales }}</span>
                         </div>
-                        <div class="amount-row">
+                        <div class="amount-row" style="margin-top:6px;">
                             <span class="price">¥{{ fav.product.price }}</span>
                             {% if fav.product.original_price %}
                                 <span class="old-price">¥{{ fav.product.original_price }}</span>
                             {% endif %}
                         </div>
                     </a>
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <div style="display:flex;gap:6px;margin-top:8px;">
                         <form method="post" action="{% url 'shop:add_to_cart' fav.product.id %}">
                             {% csrf_token %}
-                            <button class="round-add" type="submit" aria-label="加入购物车">+</button>
+                            <button class="round-add" type="submit" title="加入购物车">+</button>
                         </form>
                         <form method="post" action="{% url 'shop:favorite_toggle' fav.product.id %}">
                             {% csrf_token %}
-                            <button class="round-add" type="submit" style="color: var(--danger);" aria-label="取消收藏">x</button>
+                            <button class="round-add" type="submit" style="color:var(--danger);" title="取消收藏">&times;</button>
                         </form>
                     </div>
                 </article>
             {% endfor %}
         </div>
     {% else %}
-        <div class="empty-favorites">
-            <div class="empty-icon">H</div>
-            <p style="font-size: 16px; margin-bottom: 12px;">暂无收藏商品</p>
-            <a class="btn" href="{% url 'shop:category' %}">去逛逛</a>
+        <div class="fav-empty">
+            <div class="fav-empty-icon">❤️</div>
+            <p style="font-size:16px;">暂无收藏商品</p>
+            <a class="btn btn-primary" href="{% url 'shop:category' %}" style="margin-top:12px;">去逛逛</a>
         </div>
     {% endif %}
 </div>

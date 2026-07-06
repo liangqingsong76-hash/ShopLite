@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 账单{% endblock %}
+
+{% block extra_head %}
+<style>
+    .page-wrap { max-width: 800px; margin: 0 auto; }
+    .summary-bar {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+    .summary-item {
+        text-align: center;
+        padding: 20px;
+        background: #fafaf8;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+    }
+    .summary-item .num { font-size: 28px; font-weight: 800; }
+    .summary-item .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .summary-item .num.out { color: var(--danger); }
+    .summary-item .num.in { color: var(--success); }
+
+    .bill-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+        transition: background var(--transition);
+    }
+    .bill-card:hover { background: #fafaf8; }
+    .bill-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f5f3f0;
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        margin-right: 14px;
+        flex-shrink: 0;
+    }
+    .bill-left { display: flex; align-items: center; }
+    .bill-info .title { font-weight: 600; }
+    .bill-info .time { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .bill-amount { font-weight: 700; font-size: 16px; }
+    .bill-amount.minus { color: var(--danger); }
+    .bill-amount.plus { color: var(--success); }
+    .bill-list { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: #fff; }
+    .empty-state { text-align: center; padding: 64px 20px; color: var(--muted); }
+    .empty-state-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
+    <span>账单</span>
+</div>
+
+<div class="page-wrap">
+    <h1 style="margin: 0 0 22px;">账单</h1>
+
+    <div class="summary-bar">
+        <div class="summary-item">
+            <div class="num">¥568.00</div>
+            <div class="label">本月支出</div>
+        </div>
+        <div class="summary-item">
+            <div class="num in">¥0.00</div>
+            <div class="label">本月收入</div>
+        </div>
+        <div class="summary-item">
+            <div class="num">¥2,840.00</div>
+            <div class="label">累计消费</div>
+        </div>
+    </div>
+
+    <div class="bill-list">
+        <div class="bill-card">
+            <div class="bill-left">
+                <div class="bill-icon">🛒</div>
+                <div class="bill-info">
+                    <div class="title">商品购买</div>
+                    <div class="time">2026-07-05 15:32 · 订单号 SL050701</div>
+                </div>
+            </div>
+            <div class="bill-amount minus">-¥299.00</div>
+        </div>
+        <div class="bill-card">
+            <div class="bill-left">
+                <div class="bill-icon">↩️</div>
+                <div class="bill-info">
+                    <div class="title">退款到账</div>
+                    <div class="time">2026-07-03 09:15 · 售后 AS0625002</div>
+                </div>
+            </div>
+            <div class="bill-amount plus">+¥56.00</div>
+        </div>
+        <div class="bill-card">
+            <div class="bill-left">
+                <div class="bill-icon">🛒</div>
+                <div class="bill-info">
+                    <div class="title">商品购买</div>
+                    <div class="time">2026-07-01 10:30 · 订单号 SL010101</div>
+                </div>
+            </div>
+            <div class="bill-amount minus">-¥269.00</div>
+        </div>
+        <div class="bill-card">
+            <div class="bill-left">
+                <div class="bill-icon">↩️</div>
+                <div class="bill-info">
+                    <div class="title">退款到账</div>
+                    <div class="time">2026-06-25 16:20 · 售后 AS0625001</div>
+                </div>
+            </div>
+            <div class="bill-amount plus">+¥128.00</div>
+        </div>
+    </div>
+
+    <p class="muted" style="text-align:center;padding:20px;font-size:13px;">仅展示近 30 天账单</p>
+</div>
+{% endblock %}

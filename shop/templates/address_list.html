@@ -4,24 +4,40 @@
 
 {% block extra_head %}
 <style>
-    .address-list-layout { max-width: 900px; margin: 0 auto; }
-    .address-card {
-        display: flex; justify-content: space-between; align-items: flex-start;
-        padding: 20px; border: 1px solid var(--line); border-radius: 8px;
-        margin-bottom: 12px; transition: all 0.2s;
+    .address-page { max-width: 900px; margin: 0 auto; }
+    .addr-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 18px 20px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--radius-sm);
+        margin-bottom: 10px;
+        transition: all var(--transition);
+        background: #fff;
     }
-    .address-card.default { border-color: var(--ink); background: #fafafa; }
-    .address-card .name { font-weight: 700; font-size: 16px; }
-    .address-card .phone { margin-left: 16px; color: var(--muted); }
-    .address-card .addr { margin-top: 6px; color: var(--muted); font-size: 14px; }
-    .address-card .tag {
-        display: inline-block; padding: 2px 8px; border-radius: 4px;
-        background: var(--ink); color: #fff; font-size: 11px; margin-left: 8px;
+    .addr-card:hover { border-color: var(--ink); }
+    .addr-card.default { border-color: var(--ink); background: #fafaf8; }
+    .addr-info .name { font-weight: 700; font-size: 16px; }
+    .addr-info .phone { margin-left: 14px; color: var(--muted); }
+    .addr-info .detail { margin-top: 5px; color: var(--muted); font-size: 13px; }
+    .addr-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 600;
+        margin-left: 8px;
     }
-    .address-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
-    .address-actions a { font-size: 14px; }
-    .address-actions .del { color: var(--danger); }
-    .empty-addresses { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .addr-actions { display: flex; gap: 8px; flex-shrink: 0; font-size: 13px; align-items: center; }
+    .addr-actions a { color: var(--muted); transition: color var(--transition); }
+    .addr-actions a:hover { color: var(--ink); }
+    .addr-actions a.danger { color: var(--danger); }
+    .addr-actions a.danger:hover { color: #a00; }
+    .addr-empty { text-align: center; padding: 64px 20px; color: var(--muted); }
+    .addr-empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
 </style>
 {% endblock %}
 
@@ -32,36 +48,37 @@
     <span>收货地址</span>
 </div>
 
-<div class="address-list-layout">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h1 style="margin: 0;">收货地址</h1>
+<div class="address-page">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+        <h1 style="margin:0;">收货地址</h1>
         <a class="btn btn-primary" href="{% url 'shop:address_add' %}">+ 新增地址</a>
     </div>
 
     {% if addresses %}
         {% for addr in addresses %}
-            <div class="address-card {% if addr.is_default %}default{% endif %}">
-                <div>
+            <div class="addr-card {% if addr.is_default %}default{% endif %}">
+                <div class="addr-info">
                     <div>
                         <span class="name">{{ addr.receiver }}</span>
                         <span class="phone">{{ addr.phone }}</span>
-                        {% if addr.is_default %}<span class="tag">默认</span>{% endif %}
+                        {% if addr.is_default %}<span class="addr-tag">默认</span>{% endif %}
                     </div>
-                    <div class="addr">{{ addr.province }}{{ addr.city }}{{ addr.district }} {{ addr.detail }}</div>
+                    <div class="detail">{{ addr.province }}{{ addr.city }}{{ addr.district }} {{ addr.detail }}</div>
                 </div>
-                <div class="address-actions">
+                <div class="addr-actions">
                     {% if not addr.is_default %}
                         <a href="{% url 'shop:address_set_default' addr.id %}">设为默认</a>
                     {% endif %}
                     <a href="{% url 'shop:address_edit' addr.id %}">编辑</a>
-                    <a class="del" href="{% url 'shop:address_delete' addr.id %}" onclick="return confirm('确定删除此地址？')">删除</a>
+                    <a class="danger" href="{% url 'shop:address_delete' addr.id %}" onclick="return confirm('确定删除此地址？')">删除</a>
                 </div>
             </div>
         {% endfor %}
     {% else %}
-        <div class="empty-addresses">
-            <p style="font-size: 16px; margin-bottom: 12px;">暂无收货地址</p>
-            <a class="btn" href="{% url 'shop:address_add' %}">添加新地址</a>
+        <div class="addr-empty">
+            <div class="addr-empty-icon">📍</div>
+            <p style="font-size:16px;">暂无收货地址</p>
+            <a class="btn btn-primary" href="{% url 'shop:address_add' %}" style="margin-top:12px;">添加新地址</a>
         </div>
     {% endif %}
 </div>

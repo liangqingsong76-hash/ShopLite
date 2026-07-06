@@ -2,116 +2,107 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>ShopLite 注册</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopLite - 注册</title>
     <style>
-        *{
-            box-sizing:border-box;
-        }
-        body{
-            margin:0;
-            height:100vh;
-            background:#fafafa;
-            font-family:"Microsoft YaHei";
-            display:flex;
-            justify-content:center;
-            align-items:center;
-        }
-        .container{
-            width:1300px;
-            height:850px;
-            background:white;
-            border-radius:25px;
-            display:flex;
-            overflow:hidden;
-            box-shadow:0 10px 40px rgba(0,0,0,.08);
-        }
-        /* 左侧 */
-        .left{
-            width:50%;
-            background:url("/static/images/login-bg.jpg") center/cover;
-            padding:120px 80px;
-        }
-        .logo{
-            font-size:34px;
-            font-weight:bold;
-        }
-        .left h1{
-            margin-top:150px;
-            font-size:42px;
-        }
-        .left p{
-            font-size:22px;
-            color:#555;
-        }
-        /* 右侧 */
-        .right{
-            width:50%;
-            padding:70px 90px;
-        }
-        .top{
-            text-align:right;
-            color:#777;
-        }
-        .top a{
-            color:#b9854a;
-            text-decoration:none;
-        }
-        h2{
-            margin-top:100px;
-            font-size:36px;
-        }
-        .desc{
-            color:#888;
-        }
-        .input{
-            width:100%;
-            height:65px;
-            margin-top:25px;
-            border:1px solid #ddd;
-            border-radius:12px;
-            padding:0 25px;
-            font-size:18px;
-        }
-        .btn{
-            width:100%;
-            height:65px;
-            margin-top:35px;
-            background:#222;
-            color:white;
-            border:none;
-            border-radius:12px;
-            font-size:22px;
-        }
-        .bottom{
-            margin-top:40px;
-            text-align:center;
-            color:#777;
-        }
+        {% include "account/auth_base.css" %}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="left">
-            <div class="logo">ShopLite</div>
-            <h1>发现品质生活</h1>
-            <p>精选好物，简约 · 实用 · 高颜值</p>
-        </div>
-        <div class="right">
-            <div class="top">已有账号？<a href="{% url 'account_login' %}">立即登录</a></div>
-            <h2>创建账号</h2>
-            <p class="desc">注册ShopLite，开启品质购物体验</p>
-            <form method="post" action="{% url 'account_signup' %}">
-                {% csrf_token %}
-                {% if form.errors %}
-                    <div style="color:red;">{{ form.errors }}</div>
-                {% endif %}
-                <input class="input" type="text" name="username" placeholder="用户名" required>
-                <input class="input" type="password" name="password1" placeholder="设置密码" required>
-                <input class="input" type="password" name="password2" placeholder="确认密码" required>
-                <button class="btn" type="submit">注册</button>
-            </form>
-            <div class="bottom">注册即表示同意 ShopLite《用户协议》和《隐私政策》</div>
-        </div>
-    </div>
+    <header class="auth-topbar">
+        <a class="auth-brand" href="{% url 'shop:home' %}">
+            <span class="brand-mark">S</span>
+            <span>ShopLite</span>
+        </a>
+        <nav class="auth-links" aria-label="账号页快捷入口">
+            <a href="{% url 'shop:home' %}">返回首页</a>
+            <a href="{% url 'shop:help' %}">帮助中心</a>
+            <a href="{% url 'account_login' %}">去登录</a>
+        </nav>
+    </header>
+
+    <main class="auth-page">
+        <section class="auth-shell">
+            <div class="auth-showcase">
+                <div class="showcase-kicker">新用户礼包 · 限时领取</div>
+                <div class="showcase-copy">
+                    <h1>注册后开启完整购物体验</h1>
+                    <p>管理收货地址、收藏商品、查看订单进度，并领取新用户满减权益。</p>
+                </div>
+                <div class="deal-board" aria-hidden="true">
+                    <div class="deal-card"><strong>新人券</strong><span>注册即领专属优惠</span></div>
+                    <div class="deal-card"><strong>会员分</strong><span>下单累计成长值</span></div>
+                    <div class="deal-card"><strong>收藏夹</strong><span>好物不再错过</span></div>
+                    <div class="deal-card"><strong>订单追踪</strong><span>状态实时同步</span></div>
+                </div>
+                <div class="showcase-stats">
+                    <div class="showcase-stat"><strong>1 分钟注册</strong><span>快速创建账号</span></div>
+                    <div class="showcase-stat"><strong>安全登录</strong><span>支持后续手机号验证</span></div>
+                    <div class="showcase-stat"><strong>权益同步</strong><span>收藏订单不丢失</span></div>
+                </div>
+            </div>
+
+            <div class="auth-panel">
+                <div class="panel-switch">已有账号？ <a href="{% url 'account_login' %}">立即登录</a></div>
+
+                <div class="auth-form">
+                    <h2>创建账号</h2>
+                    <p class="subtitle">填写基础信息，后续可绑定手机号和第三方账号</p>
+
+                    {% if form.errors %}
+                        <div class="form-error">{{ form.errors }}</div>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'account_signup' %}">
+                        {% csrf_token %}
+                        {% if redirect_field_value %}
+                            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                        {% endif %}
+
+                        <div class="field">
+                            <label class="field-label" for="id_username">用户名</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">👤</span>
+                                <input id="id_username" type="text" name="username" autocomplete="username" placeholder="请输入用户名" required>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="id_phone">手机号</label>
+                            <div class="verify-row">
+                                <div class="input-wrap">
+                                    <span class="input-icon">📱</span>
+                                    <input id="id_phone" type="tel" name="phone" autocomplete="tel" placeholder="预留手机号，后续可绑定">
+                                </div>
+                                <button class="verify-btn" type="button">暂未启用</button>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="id_password1">设置密码</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">🔒</span>
+                                <input id="id_password1" type="password" name="password1" autocomplete="new-password" placeholder="至少 8 位字符" required>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="id_password2">确认密码</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">✓</span>
+                                <input id="id_password2" type="password" name="password2" autocomplete="new-password" placeholder="再次输入密码" required>
+                            </div>
+                        </div>
+
+                        <button class="primary-submit" type="submit">注册并领取权益</button>
+                    </form>
+
+                    <div class="agreement">
+                        注册即表示您同意 ShopLite 的 <a href="#">用户协议</a> 和 <a href="#">隐私政策</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
 </body>
 </html>

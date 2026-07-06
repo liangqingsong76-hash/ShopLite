@@ -10,29 +10,61 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import importlib.util
+import os
 from pathlib import Path
+
+try:
+    import environ
+except ImportError:
+    environ = None
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+if environ:
+    env = environ.Env(
+        DEBUG=(bool, True),
+        ALLOWED_HOSTS=(list, []),
+        SHOPLITE_PAYMENT_SECRET=(str, ""),
+        USE_REDIS_CACHE=(bool, False),
+    )
+    environ.Env.read_env(BASE_DIR / ".env")
+
+    def env_value(name, default=None):
+        return env(name, default=default)
+else:
+    def env_value(name, default=None):
+        return os.environ.get(name, default)
+
+    def _env_bool(name, default=False):
+        value = os.environ.get(name)
+        if value is None:
+            return default
+        return value.lower() in {"1", "true", "yes", "on"}
+
+    def _env_list(name, default=None):
+        value = os.environ.get(name)
+        if not value:
+            return default or []
+        return [item.strip() for item in value.split(",") if item.strip()]
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-r93p1*&&**ar47x69$1(g*+rypq*++f*jj8lar!8j(2u9f%xfr"
+SECRET_KEY = env_value("SECRET_KEY", default="django-insecure-r93p1*&&**ar47x69$1(g*+rypq*++f*jj8lar!8j(2u9f%xfr")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env("DEBUG") if environ else _env_bool("DEBUG", True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env("ALLOWED_HOSTS") if environ else _env_list("ALLOWED_HOSTS")
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    # 管理员界面优化
-    'simpleui',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -48,6 +80,15 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.alipay',
     'shop'
 ]
+
+if importlib.util.find_spec("simpleui"):
+    INSTALLED_APPS.insert(0, "simpleui")
+
+if DEBUG and importlib.util.find_spec("debug_toolbar"):
+    INSTALLED_APPS.append("debug_toolbar")
+
+if importlib.util.find_spec("django_htmx"):
+    INSTALLED_APPS.append("django_htmx")
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -70,6 +111,16 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "shoplite.urls"
+
+if DEBUG and importlib.util.find_spec("debug_toolbar"):
+    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
+
+if importlib.util.find_spec("whitenoise"):
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+
+if importlib.util.find_spec("django_htmx"):
+    MIDDLEWARE.insert(MIDDLEWARE.index("django.middleware.csrf.CsrfViewMiddleware"), "django_htmx.middleware.HtmxMiddleware")
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -90,16 +141,24 @@ TEMPLATES = [
 WSGI_APPLICATION = "shoplite.wsgi.application"
 
 
-DATABASES = {
-    'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'shoplite',  # 数据库名字
-            'USER': 'root',  # 数据库账号
-            'PASSWORD': '621261',  # 数据库密码
-            'HOST': '127.0.0.1',  # 数据库主机
-            'PORT': '3306',
-}
-}
+if environ:
+    DATABASES = {
+        "default": env.db(
+            "DATABASE_URL",
+            default="mysql://root:621261@127.0.0.1:3306/shoplite",
+        )
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.environ.get("DB_NAME", "shoplite"),
+            "USER": os.environ.get("DB_USER", "root"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", "621261"),
+            "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
+            "PORT": os.environ.get("DB_PORT", "3306"),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -136,6 +195,19 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if importlib.util.find_spec("whitenoise")
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+    },
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -143,15 +215,47 @@ MEDIA_ROOT = BASE_DIR / "media"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
-ACCOUNT_EMAIL_REQUIRED = False
-ACCOUNT_USERNAME_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = "username"
+ACCOUNT_LOGIN_METHODS = {"username"}
+ACCOUNT_SIGNUP_FIELDS = ["username*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+SHOPLITE_PAYMENT_SECRET = env_value("SHOPLITE_PAYMENT_SECRET", default="")
+
+REDIS_URL = env_value("REDIS_URL", default="redis://127.0.0.1:6379/0")
+USE_REDIS_CACHE = env("USE_REDIS_CACHE") if environ else _env_bool("USE_REDIS_CACHE", False)
+
+CACHES = (
+    {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+    if USE_REDIS_CACHE
+    else {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "shoplite-local-cache",
+        }
+    }
+)
+
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "cancel-expired-pending-orders": {
+        "task": "shop.tasks.cancel_expired_pending_orders",
+        "schedule": 300.0,
+        "args": (30,),
+    }
+}
 
 
 # SimpleUI配置
@@ -162,4 +266,55 @@ SIMPLEUI_HOME_PAGE = ''
 SIMPLEUI_HOME_TITLE = 'ShopLite管理后台'
 SIMPLEUI_DEFAULT_THEME = 'simpleui.css'
 SIMPLEUI_LOGO = ''
+SIMPLEUI_CONFIG = {
+    "system_keep": True,
+    "menu_display": ["商品中心", "交易中心", "用户服务", "内容评价", "系统管理"],
+    "dynamic": False,
+    "menus": [
+        {
+            "name": "商品中心",
+            "icon": "fas fa-box-open",
+            "models": [
+                {"name": "分类管理", "icon": "fas fa-sitemap", "url": "shop/category/"},
+                {"name": "商品管理", "icon": "fas fa-store", "url": "shop/product/"},
+                {"name": "商品图片", "icon": "fas fa-images", "url": "shop/productimage/"},
+            ],
+        },
+        {
+            "name": "交易中心",
+            "icon": "fas fa-receipt",
+            "models": [
+                {"name": "订单管理", "icon": "fas fa-file-invoice", "url": "shop/order/"},
+                {"name": "订单明细", "icon": "fas fa-list", "url": "shop/orderitem/"},
+                {"name": "购物车项", "icon": "fas fa-shopping-cart", "url": "shop/cartitem/"},
+            ],
+        },
+        {
+            "name": "用户服务",
+            "icon": "fas fa-user-cog",
+            "models": [
+                {"name": "收货地址", "icon": "fas fa-map-marker-alt", "url": "shop/address/"},
+                {"name": "商品收藏", "icon": "fas fa-heart", "url": "shop/favorite/"},
+            ],
+        },
+        {
+            "name": "内容评价",
+            "icon": "fas fa-comments",
+            "models": [
+                {"name": "商品评价", "icon": "fas fa-star", "url": "shop/review/"},
+            ],
+        },
+        {
+            "name": "系统管理",
+            "icon": "fas fa-shield-alt",
+            "models": [
+                {"name": "用户", "icon": "fas fa-users", "url": "auth/user/"},
+                {"name": "用户组", "icon": "fas fa-user-friends", "url": "auth/group/"},
+                {"name": "站点", "icon": "fas fa-globe", "url": "sites/site/"},
+                {"name": "邮箱地址", "icon": "fas fa-envelope", "url": "account/emailaddress/"},
+                {"name": "社交账号", "icon": "fas fa-link", "url": "socialaccount/socialaccount/"},
+            ],
+        },
+    ],
+}
 

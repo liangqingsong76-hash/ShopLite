@@ -4,17 +4,8 @@
 
 {% block extra_head %}
 <style>
-    .address-form-layout { max-width: 600px; margin: 0 auto; }
-    .form-group { margin-bottom: 18px; }
-    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; }
-    .form-group input, .form-group textarea {
-        width: 100%; height: 46px; border: 1px solid var(--line); border-radius: 8px;
-        padding: 0 14px; font-size: 15px; outline: none;
-    }
-    .form-group input:focus, .form-group textarea:focus { border-color: var(--ink); }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .form-actions { margin-top: 28px; display: flex; gap: 12px; }
-    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+    .addr-form-page { max-width: 560px; margin: 0 auto; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 </style>
 {% endblock %}
 
@@ -25,44 +16,44 @@
     <span>{% if edit %}编辑{% else %}新增{% endif %}地址</span>
 </div>
 
-<div class="address-form-layout">
-    <h1 style="margin: 0 0 24px;">{% if edit %}编辑{% else %}新增{% endif %}收货地址</h1>
+<div class="addr-form-page">
+    <h1 style="margin:0 0 22px;">{% if edit %}编辑{% else %}新增{% endif %}收货地址</h1>
 
     <form method="post">
         {% csrf_token %}
         <div class="form-group">
-            <label>收货人</label>
-            <input name="receiver" type="text" value="{{ address.receiver|default:'' }}" placeholder="请输入收货人姓名" required>
+            <label class="form-label">收货人</label>
+            <input class="form-input" name="receiver" type="text" value="{{ address.receiver|default:'' }}" placeholder="请输入收货人姓名" required>
         </div>
         <div class="form-group">
-            <label>手机号</label>
-            <input name="phone" type="text" value="{{ address.phone|default:'' }}" placeholder="请输入手机号" required>
+            <label class="form-label">手机号</label>
+            <input class="form-input" name="phone" type="text" value="{{ address.phone|default:'' }}" placeholder="请输入手机号" required>
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label>省份</label>
-                <input name="province" type="text" value="{{ address.province|default:'' }}" placeholder="省份">
+                <label class="form-label">省份</label>
+                <input class="form-input" name="province" type="text" value="{{ address.province|default:'' }}" placeholder="省份">
             </div>
             <div class="form-group">
-                <label>城市</label>
-                <input name="city" type="text" value="{{ address.city|default:'' }}" placeholder="城市">
+                <label class="form-label">城市</label>
+                <input class="form-input" name="city" type="text" value="{{ address.city|default:'' }}" placeholder="城市">
             </div>
             <div class="form-group">
-                <label>区县</label>
-                <input name="district" type="text" value="{{ address.district|default:'' }}" placeholder="区县">
+                <label class="form-label">区县</label>
+                <input class="form-input" name="district" type="text" value="{{ address.district|default:'' }}" placeholder="区县">
             </div>
         </div>
         <div class="form-group">
-            <label>详细地址</label>
-            <input name="detail" type="text" value="{{ address.detail|default:'' }}" placeholder="街道、门牌号等" required>
+            <label class="form-label">详细地址</label>
+            <input class="form-input" name="detail" type="text" value="{{ address.detail|default:'' }}" placeholder="街道、门牌号等" required>
         </div>
-        <div class="checkbox-row">
-            <input type="checkbox" name="is_default" id="is_default" {% if address.is_default %}checked{% endif %}>
-            <label for="is_default">设为默认地址</label>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-bottom:24px;">
+            <input type="checkbox" name="is_default" id="is_default" {% if address.is_default %}checked{% endif %} style="width:18px;height:18px;accent-color:var(--ink);">
+            <label for="is_default" style="font-size:14px;cursor:pointer;">设为默认地址</label>
         </div>
-        <div class="form-actions">
+        <div style="display:flex;gap:10px;">
             <button class="btn btn-primary" type="submit">保存</button>
-            <a class="btn" href="{% url 'shop:address_list' %}">取消</a>
+            <a class="btn btn-outline" href="{% url 'shop:address_list' %}">取消</a>
         </div>
     </form>
 </div>

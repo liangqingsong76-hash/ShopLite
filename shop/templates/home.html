@@ -4,133 +4,176 @@
 
 {% block extra_head %}
 <style>
-    .home-layout {
-        display: grid;
-        grid-template-columns: 190px 1fr;
-        gap: 20px;
-    }
+    .home-layout { display: grid; grid-template-columns: 210px 1fr; gap: 18px; }
     .hero {
-        min-height: 350px;
-        border-radius: 8px;
+        min-height: 360px;
+        border-radius: 10px;
         overflow: hidden;
         position: relative;
         display: grid;
-        grid-template-columns: 1fr 460px;
+        grid-template-columns: minmax(0, 1fr) 430px;
         align-items: center;
-        padding: 54px;
+        padding: 42px 48px;
         background:
-            radial-gradient(circle at 78% 45%, rgba(255,255,255,0.72), rgba(255,255,255,0) 22%),
-            linear-gradient(110deg, #f5ede4 0%, #fbfaf8 54%, #ded1c4 100%);
+            linear-gradient(110deg, rgba(255,77,46,.95), rgba(255,129,35,.92)),
+            #ff5a35;
+        color: #fff;
+        margin-bottom: 24px;
     }
-    .hero h1 { margin: 0 0 18px; font-size: 24px; }
-    .hero strong { display: block; font-size: 34px; margin-bottom: 36px; }
-    .hero-scene { height: 260px; position: relative; }
-    .chair {
+    .hero h1 { margin: 0 0 12px; font-size: 22px; font-weight: 800; color: rgba(255,255,255,.86); }
+    .hero strong { display: block; max-width: 520px; font-size: 40px; line-height: 1.16; margin-bottom: 18px; font-weight: 900; }
+    .hero p { margin: 0 0 28px; max-width: 480px; color: rgba(255,255,255,.82); line-height: 1.7; }
+    .hero .btn-primary { background:#fff;color:#ff4d2e;border-color:#fff; }
+    .hero .btn-primary:hover { background:#fff; }
+    .hero-scene { height: 265px; position: relative; }
+    .promo-card {
         position: absolute;
-        right: 34px;
-        bottom: 0;
-        width: 210px;
-        height: 210px;
-        border-radius: 40px 40px 8px 8px;
-        border: 22px solid #b88755;
-        background: #d9d0c3;
+        inset: 10px 0 0 auto;
+        width: 380px;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        border-radius: 18px;
+        background: rgba(255,255,255,.96);
+        box-shadow: 0 22px 50px rgba(111, 36, 20, .24);
+        transform: rotate(-2deg);
     }
-    .table {
-        position: absolute;
-        right: 160px;
-        bottom: 0;
-        width: 260px;
-        height: 30px;
-        border-radius: 50%;
-        background: #c99560;
-        box-shadow: 0 34px 0 -8px #a46d3f;
+    .promo-tile {
+        min-height: 94px;
+        padding: 12px;
+        border-radius: 12px;
+        background: #f6f7f9;
+        color: var(--ink);
     }
-    .vase {
-        position: absolute;
-        right: 245px;
-        bottom: 30px;
-        width: 44px;
-        height: 86px;
-        border-radius: 22px 22px 14px 14px;
-        background: #eee6dc;
+    .promo-tile strong { display:block;font-size:22px;color:var(--danger); }
+    .promo-tile span { color:var(--muted);font-size:12px; }
+    .promo-tile.featured { grid-column: span 2; display:flex;align-items:center;justify-content:space-between;background:#fff3ee; }
+    .promo-tile.featured strong { font-size:28px; }
+    .hero-benefits {
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        margin-top:22px;
     }
-    .lamp {
-        position: absolute;
-        right: 100px;
-        top: 0;
-        width: 120px;
-        height: 55px;
-        border-radius: 0 0 60px 60px;
-        background: #d8d1c7;
-        box-shadow: inset 0 -10px 16px rgba(255,255,255,0.55);
+    .hero-benefits span {
+        padding:6px 10px;
+        border-radius:999px;
+        background:rgba(255,255,255,.16);
+        color:rgba(255,255,255,.9);
+        font-size:12px;
+        font-weight:700;
     }
-    .hero-dots { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; }
-    .hero-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(0,0,0,0.2); }
-    .hero-dot.active { background: rgba(0,0,0,0.6); width: 24px; border-radius: 999px; }
+    .hero-dots { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+    .hero-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(0,0,0,0.15); transition: all 0.3s; cursor: pointer; }
+    .hero-dot.active { background: rgba(0,0,0,0.5); width: 22px; border-radius: 999px; }
     .category-bubbles {
         grid-column: 2;
         display: grid;
         grid-template-columns: repeat(7, 1fr);
-        gap: 22px;
-        margin: 30px 0;
+        gap: 18px;
+        margin: 26px 0;
         text-align: center;
     }
-    .bubble { display: grid; gap: 10px; justify-items: center; font-weight: 600; }
+    .bubble { display: grid; gap: 8px; justify-items: center; font-weight: 600; font-size: 13px; transition: transform var(--transition); }
+    .bubble:hover { transform: translateY(-2px); }
     .bubble-icon {
-        width: 68px;
-        height: 68px;
-        display: grid;
-        place-items: center;
+        width: 64px; height: 64px;
+        display: grid; place-items: center;
         border-radius: 50%;
         background: linear-gradient(145deg, #f5f5f3, #e8e6e3);
-        font-size: 32px;
-        font-weight: bold;
+        font-size: 26px;
+        transition: box-shadow var(--transition);
     }
+    .bubble:hover .bubble-icon { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
     .more-category {
-        width: 68px;
-        height: 68px;
-        display: grid;
-        place-items: center;
+        width: 64px; height: 64px;
+        display: grid; place-items: center;
         border-radius: 50%;
         background: linear-gradient(145deg, #f5f5f3, #e8e6e3);
-        font-size: 24px;
+        font-size: 22px;
     }
+    .home-cat-list { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+    .home-cat-head { padding: 10px 12px 12px; font-weight: 900; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+    .home-cat-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 14px;
+        transition: background var(--transition);
+    }
+    .home-cat-item:hover { background: #fff4ef; color: var(--accent); }
+    .mall-strip {
+        display:grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap:14px;
+        margin: 0 0 26px;
+    }
+    .mall-strip-item {
+        display:flex;
+        align-items:center;
+        gap:12px;
+        padding:15px 16px;
+        border:1px solid var(--line);
+        border-radius:10px;
+        background:#fff;
+    }
+    .mall-strip-icon { width:36px;height:36px;display:grid;place-items:center;border-radius:9px;background:#fff2ec;color:var(--accent);font-weight:900; }
+    .mall-strip-item strong { display:block;font-size:14px; }
+    .mall-strip-item span { color:var(--muted);font-size:12px; }
 
     @media (max-width: 1100px) {
         .home-layout { grid-template-columns: 1fr; }
         .category-bubbles { grid-column: 1; grid-template-columns: repeat(3, 1fr); }
         .hero { grid-template-columns: 1fr; padding: 32px; }
         .hero-scene { display: none; }
+        .mall-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 620px) {
+        .mall-strip { grid-template-columns: 1fr; }
+        .hero strong { font-size: 30px; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <section class="home-layout">
-    <aside class="category-list">
+    <aside class="home-cat-list">
+        <div class="home-cat-head">全部商品分类</div>
         {% for category in categories %}
-            <a class="category-item" href="{% url 'shop:category' %}?category={{ category.name }}">
-                <span class="category-name"><span class="tiny-icon">o</span>{{ category.name }}</span>
-                <span>&gt;</span>
+            <a class="home-cat-item" href="{% url 'shop:category' %}?category={{ category.name }}">
+                <span>{{ category.name }}</span>
+                <span style="color:var(--muted);">&gt;</span>
             </a>
         {% endfor %}
-        <a class="category-item" href="{% url 'shop:category' %}">
-            <span class="category-name"><span class="tiny-icon">...</span>更多分类</span>
-            <span>&gt;</span>
+        <a class="home-cat-item" href="{% url 'shop:category' %}">
+            <span>更多分类</span>
+            <span style="color:var(--muted);">&gt;</span>
         </a>
     </aside>
 
     <div class="hero">
         <div>
-            <h1>发现品质生活</h1>
-            <strong>精选好物：简约 / 实用 / 高颜值</strong>
+            <h1>ShopLite 年中好价</h1>
+            <strong>精选爆款低至 5 折，会员再享满减</strong>
+            <p>从数码、服饰到家居日用，真实商品、清晰价格、快速下单，像真正商城一样完成完整购物流程。</p>
             <a class="btn btn-primary" href="{% url 'shop:category' %}">立即选购</a>
+            <div class="hero-benefits">
+                <span>满 299 减 30</span>
+                <span>7 天无理由</span>
+                <span>订单进度可追踪</span>
+            </div>
         </div>
         <div class="hero-scene" aria-hidden="true">
-            <div class="lamp"></div>
-            <div class="chair"></div>
-            <div class="table"></div>
-            <div class="vase"></div>
+            <div class="promo-card">
+                <div class="promo-tile featured"><strong>¥30</strong><span>全场满减券</span></div>
+                <div class="promo-tile"><strong>新品</strong><span>每日精选上新</span></div>
+                <div class="promo-tile"><strong>热卖</strong><span>人气榜单推荐</span></div>
+            </div>
         </div>
         <div class="hero-dots">
             <span class="hero-dot active"></span>
@@ -143,26 +186,33 @@
     <div class="category-bubbles">
         {% for category in categories|slice:":6" %}
             <a class="bubble" href="{% url 'shop:category' %}?category={{ category.name }}">
-                <span class="bubble-icon">O</span>
+                <span class="bubble-icon">🛍️</span>
                 <span>{{ category.name }}</span>
             </a>
         {% endfor %}
         <a class="bubble" href="{% url 'shop:category' %}">
-            <span class="more-category">::</span>
+            <span class="more-category">⋯</span>
             <span>更多分类</span>
         </a>
     </div>
 </section>
 
+<section class="mall-strip" aria-label="商城服务">
+    <div class="mall-strip-item"><div class="mall-strip-icon">正</div><div><strong>正品保障</strong><span>商品信息清晰可查</span></div></div>
+    <div class="mall-strip-item"><div class="mall-strip-icon">退</div><div><strong>售后无忧</strong><span>退款/售后入口完整</span></div></div>
+    <div class="mall-strip-item"><div class="mall-strip-icon">快</div><div><strong>极速结算</strong><span>购物车一键下单</span></div></div>
+    <div class="mall-strip-item"><div class="mall-strip-icon">安</div><div><strong>安全支付</strong><span>待支付状态可追踪</span></div></div>
+</section>
+
 <section>
     <div class="section-title">
-        <h2>热门商品</h2>
-        <a class="muted" href="{% url 'shop:hot_products' %}">查看全部 &gt;</a>
+        <h2>🔥 热门商品</h2>
+        <a class="muted" href="{% url 'shop:hot_products' %}">查看全部 ›</a>
     </div>
     <div class="product-grid">
         {% for product in hot_products|slice:":10" %}
             <article class="product-card">
-                <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
+                <a href="{% url 'shop:product_detail' product.id %}" style="display:block;">
                     <div class="product-image">
                         {% if product.image %}
                             <img src="{{ product.image.url }}" alt="{{ product.name }}">
@@ -172,39 +222,30 @@
                     </div>
                     <div class="product-name">{{ product.name }}</div>
                     <div class="product-meta">
-                        <span class="stars">*****</span>
-                        <span>{{ product.rating|default:"4.8" }}</span>
-                        <span>已售 {{ product.sales }}</span>
+                        <span class="stars">★★★★★</span>
+                        <span>{{ product.rating }}</span>
                     </div>
-                    <div class="amount-row">
-                        <div>
-                            <span class="price">¥{{ product.price }}</span>
-                            {% if product.original_price %}
-                                <span class="old-price">¥{{ product.original_price }}</span>
-                            {% endif %}
-                        </div>
+                    <div class="amount-row" style="margin-top:4px;">
+                        <span class="price">¥{{ product.price }}</span>
+                        {% if product.original_price %}<span class="old-price">¥{{ product.original_price }}</span>{% endif %}
                     </div>
                 </a>
-                <form method="post" action="{% url 'shop:add_to_cart' product.id %}" style="margin-top: -36px; text-align: right;">
-                    {% csrf_token %}
-                    <button class="round-add" type="submit" aria-label="加入购物车">+</button>
-                </form>
             </article>
         {% empty %}
-            <div class="empty-note">暂无热门商品，请先运行爬虫导入数据</div>
+            <div class="empty-note">暂无热门商品</div>
         {% endfor %}
     </div>
 </section>
 
 <section>
     <div class="section-title">
-        <h2>新品上架</h2>
-        <a class="muted" href="{% url 'shop:new_products' %}">查看全部 &gt;</a>
+        <h2>✨ 新品上架</h2>
+        <a class="muted" href="{% url 'shop:new_products' %}">查看全部 ›</a>
     </div>
     <div class="product-grid">
         {% for product in new_products|slice:":10" %}
             <article class="product-card">
-                <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
+                <a href="{% url 'shop:product_detail' product.id %}" style="display:block;">
                     <div class="product-image">
                         {% if product.image %}
                             <img src="{{ product.image.url }}" alt="{{ product.name }}">
@@ -214,39 +255,30 @@
                     </div>
                     <div class="product-name">{{ product.name }}</div>
                     <div class="product-meta">
-                        <span class="stars">*****</span>
-                        <span>{{ product.rating|default:"4.8" }}</span>
-                        <span>已售 {{ product.sales }}</span>
+                        <span class="stars">★★★★★</span>
+                        <span>{{ product.rating }}</span>
                     </div>
-                    <div class="amount-row">
-                        <div>
-                            <span class="price">¥{{ product.price }}</span>
-                            {% if product.original_price %}
-                                <span class="old-price">¥{{ product.original_price }}</span>
-                            {% endif %}
-                        </div>
+                    <div class="amount-row" style="margin-top:4px;">
+                        <span class="price">¥{{ product.price }}</span>
+                        {% if product.original_price %}<span class="old-price">¥{{ product.original_price }}</span>{% endif %}
                     </div>
                 </a>
-                <form method="post" action="{% url 'shop:add_to_cart' product.id %}" style="margin-top: -36px; text-align: right;">
-                    {% csrf_token %}
-                    <button class="round-add" type="submit" aria-label="加入购物车">+</button>
-                </form>
             </article>
         {% empty %}
-            <div class="empty-note">暂无新品，请先运行爬虫导入数据</div>
+            <div class="empty-note">暂无新品</div>
         {% endfor %}
     </div>
 </section>
 
 <section>
     <div class="section-title">
-        <h2>精选推荐</h2>
-        <a class="muted" href="{% url 'shop:category' %}?filter=brand">查看全部 &gt;</a>
+        <h2>💎 精选推荐</h2>
+        <a class="muted" href="{% url 'shop:category' %}?filter=brand">查看全部 ›</a>
     </div>
     <div class="product-grid">
         {% for product in recommended_products|slice:":10" %}
             <article class="product-card">
-                <a href="{% url 'shop:product_detail' product.id %}" style="display: block;">
+                <a href="{% url 'shop:product_detail' product.id %}" style="display:block;">
                     <div class="product-image">
                         {% if product.image %}
                             <img src="{{ product.image.url }}" alt="{{ product.name }}">
@@ -256,26 +288,17 @@
                     </div>
                     <div class="product-name">{{ product.name }}</div>
                     <div class="product-meta">
-                        <span class="stars">*****</span>
-                        <span>{{ product.rating|default:"4.8" }}</span>
-                        <span>已售 {{ product.sales }}</span>
+                        <span class="stars">★★★★★</span>
+                        <span>{{ product.rating }}</span>
                     </div>
-                    <div class="amount-row">
-                        <div>
-                            <span class="price">¥{{ product.price }}</span>
-                            {% if product.original_price %}
-                                <span class="old-price">¥{{ product.original_price }}</span>
-                            {% endif %}
-                        </div>
+                    <div class="amount-row" style="margin-top:4px;">
+                        <span class="price">¥{{ product.price }}</span>
+                        {% if product.original_price %}<span class="old-price">¥{{ product.original_price }}</span>{% endif %}
                     </div>
                 </a>
-                <form method="post" action="{% url 'shop:add_to_cart' product.id %}" style="margin-top: -36px; text-align: right;">
-                    {% csrf_token %}
-                    <button class="round-add" type="submit" aria-label="加入购物车">+</button>
-                </form>
             </article>
         {% empty %}
-            <div class="empty-note">暂无推荐商品，请先运行爬虫导入数据</div>
+            <div class="empty-note">暂无推荐商品</div>
         {% endfor %}
     </div>
 </section>

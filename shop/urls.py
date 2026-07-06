@@ -15,8 +15,12 @@ urlpatterns = [
     path("cart/add/<int:product_id>/", views.add_to_cart, name="add_to_cart"),
     path("cart/remove/<int:item_id>/", views.remove_cart_item, name="remove_cart_item"),
     path("profile/", views.profile, name="profile"),
+    path("settings/", views.settings, name="settings"),
     path("notifications/", views.notifications, name="notifications"),
     path("checkout/<int:order_id>/", views.create_checkout_session, name="checkout"),
+    path("payment/mock/<int:order_id>/", views.mock_payment, name="mock_payment"),
+    path("payment/notify/", views.payment_notify, name="payment_notify"),
+    path("payment/alipay/notify/", views.alipay_notify, name="alipay_notify"),
 
     # 购物车结算
     path("checkout/", views.checkout, name="checkout_page"),
@@ -36,4 +40,12 @@ urlpatterns = [
     # 收藏管理
     path("favorites/", views.favorite_list, name="favorite_list"),
     path("favorite/toggle/<int:product_id>/", views.favorite_toggle_view, name="favorite_toggle"),
+
+    # 我的服务
+    path("history/", views.history, name="history"),
+    path("coupons/", views.coupons, name="coupons"),
+    path("service/", views.service, name="service"),
+    path("refunds/", views.refunds, name="refunds"),
+    path("bills/", views.bills, name="bills"),
+    path("help/", views.help_page, name="help"),
 ]

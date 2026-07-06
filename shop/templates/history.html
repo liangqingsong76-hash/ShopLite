@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 我的足迹{% endblock %}
+
+{% block extra_head %}
+<style>
+    .page-wrap { max-width: 1100px; margin: 0 auto; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .toolbar h1 { margin: 0; }
+    .date-tabs { display: flex; gap: 6px; }
+    .date-tab {
+        padding: 6px 16px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        font-size: 13px;
+        cursor: pointer;
+        transition: all var(--transition);
+        background: #fff;
+        color: var(--ink);
+    }
+    .date-tab:hover { border-color: var(--ink); }
+    .date-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .empty-state { text-align: center; padding: 64px 20px; color: var(--muted); }
+    .empty-state-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
+    <span>我的足迹</span>
+</div>
+
+<div class="page-wrap">
+    <div class="toolbar">
+        <h1>我的足迹</h1>
+        <div class="date-tabs">
+            <span class="date-tab active">全部</span>
+            <span class="date-tab">今天</span>
+            <span class="date-tab">本周</span>
+            <span class="date-tab">本月</span>
+            <span class="date-tab">更早</span>
+        </div>
+    </div>
+
+    {% if products %}
+        <div class="product-grid">
+            {% for product in products %}
+                <article class="product-card">
+                    <a href="{% url 'shop:product_detail' product.id %}" style="display:block;">
+                        <div class="product-image">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                            {% else %}
+                                <span class="product-fallback"></span>
+                            {% endif %}
+                        </div>
+                        <div class="product-name">{{ product.name }}</div>
+                        <div class="product-meta">
+                            <span class="stars">★★★★★</span>
+                            <span>{{ product.rating }}</span>
+                        </div>
+                        <div class="price" style="margin-top:4px;">¥{{ product.price }}</div>
+                    </a>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">👣</div>
+            <p style="font-size:16px;">暂无浏览记录</p>
+            <p>浏览过的商品会在这里展示</p>
+            <a class="btn btn-primary" href="{% url 'shop:category' %}" style="margin-top:12px;">去逛逛</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
