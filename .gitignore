@@ -21,3 +21,7 @@ media/
 
 # 系统文件
 .DS_Store
+
+
+# 配置文件
+.env

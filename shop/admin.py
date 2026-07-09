@@ -10,9 +10,11 @@ from .models import (
     Favorite,
     Order,
     OrderItem,
+    PhoneVerificationCode,
     Product,
     ProductImage,
     Review,
+    UserProfile,
 )
 
 
@@ -290,6 +292,25 @@ class CartItemAdmin(admin.ModelAdmin):
     search_fields = ("user__username", "product__name", "color")
     list_select_related = ("user", "product")
     list_per_page = 30
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "phone", "phone_verified_at", "updated_at")
+    search_fields = ("user__username", "phone")
+    list_select_related = ("user",)
+    readonly_fields = ("created_at", "updated_at", "phone_verified_at")
+
+
+@admin.register(PhoneVerificationCode)
+class PhoneVerificationCodeAdmin(admin.ModelAdmin):
+    list_display = ("phone", "purpose", "created_at", "expires_at", "used_at", "sent_to_backend")
+    list_filter = ("purpose", "sent_to_backend", "created_at", "used_at")
+    search_fields = ("phone",)
+    readonly_fields = ("phone", "code", "purpose", "created_at", "expires_at", "used_at", "sent_to_backend")
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(Address)

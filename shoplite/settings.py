@@ -14,35 +14,56 @@ import importlib.util
 import os
 from pathlib import Path
 
+
+"""""优先使用 django-environ 库（功能更强大），如果没安装则自动降级到 Python 原生的 os.environ。这样项目在任何环境下都能正常运行。"""
+# 尝试导入 environ
 try:
     import environ
 except ImportError:
+    # 为后面判断做准备
     environ = None
 
+# 回到django根目录，.parent.parent会回到外层
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+# TODO:配置Env
 if environ:
+    # 注册环境变量的类型和默认值
     env = environ.Env(
         DEBUG=(bool, True),
         ALLOWED_HOSTS=(list, []),
         SHOPLITE_PAYMENT_SECRET=(str, ""),
+        SMS_PROVIDER=(str, "console"),
+        TENCENT_SMS_SECRET_ID=(str, ""),
+        TENCENT_SMS_SECRET_KEY=(str, ""),
+        TENCENT_SMS_SDK_APP_ID=(str, ""),
+        TENCENT_SMS_SIGN_NAME=(str, ""),
+        TENCENT_SMS_TEMPLATE_ID=(str, ""),
+        TENCENT_SMS_REGION=(str, "ap-guangzhou"),
+        WECHAT_LOGIN_MODE=(str, "mock"),
         USE_REDIS_CACHE=(bool, False),
     )
+    # 读取项目根目录下的 .env 文件，把里面的键值对加载到环境变量中
     environ.Env.read_env(BASE_DIR / ".env")
 
+    # 封装一个统一的取值函数
     def env_value(name, default=None):
         return env(name, default=default)
 else:
+    # 普通字符串取值，直接调用 os.environ.get()
     def env_value(name, default=None):
         return os.environ.get(name, default)
 
+    # 手动实现布尔转换，识别 1/true/yes/on（不区分大小写）
     def _env_bool(name, default=False):
         value = os.environ.get(name)
         if value is None:
             return default
         return value.lower() in {"1", "true", "yes", "on"}
 
+    # 手动实现列表转换，按逗号分割，去除空白项
     def _env_list(name, default=None):
         value = os.environ.get(name)
         if not value:
@@ -54,16 +75,20 @@ else:
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# Django 的密钥，用于签名 session、CSRF等。生产环境不能用默认值，随机生成密钥python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 SECRET_KEY = env_value("SECRET_KEY", default="django-insecure-r93p1*&&**ar47x69$1(g*+rypq*++f*jj8lar!8j(2u9f%xfr")
 
 # SECURITY WARNING: don't run with debug turned on in production!
+# 调试模式。开发环境可以是True，生产环境必须是False
 DEBUG = env("DEBUG") if environ else _env_bool("DEBUG", True)
 
+# 允许访问这个 Django 服务的域名或 IP，如ALLOWED_HOSTS = ['myshop.com', 'www.myshop.com', '47.98.123.45']
 ALLOWED_HOSTS = env("ALLOWED_HOSTS") if environ else _env_list("ALLOWED_HOSTS")
 
 
 # Application definition
 
+# 安装应用
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -81,52 +106,65 @@ INSTALLED_APPS = [
     'shop'
 ]
 
+# 如果安装了 `simpleui`，后台会使用 SimpleUI，美化 Django Admin 后台
 if importlib.util.find_spec("simpleui"):
     INSTALLED_APPS.insert(0, "simpleui")
 
+# 如果是 DEBUG 并安装了 `debug_toolbar`，启用 Django Debug Toolbar，美化 Django Admin 后台，仅调试时使用
 if DEBUG and importlib.util.find_spec("debug_toolbar"):
     INSTALLED_APPS.append("debug_toolbar")
 
+# 如果安装了 `django_htmx`，启用 HTMX 支持，实现局部刷新，无需写 JS
 if importlib.util.find_spec("django_htmx"):
     INSTALLED_APPS.append("django_htmx")
 
+# 认证后端(登录界面)，Django原生用户名密码(admin)认证，django-allauth 账号认证
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
+# 邮件发到控制台，不是真发邮件
 EMAIL_BACKEND = ("django.core.mail.backends.console.EmailBackend")
 
+# SITE_ID` 是 allauth/sites 框架需要的站点编号
 SITE_ID = 1
 
+# 中间件是请求进入视图前、响应返回浏览器前经过的一层层处理
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    'allauth.account.middleware.AccountMiddleware',   # 添加这一行
+    "django.middleware.security.SecurityMiddleware",         # 安全中间件
+    "django.contrib.sessions.middleware.SessionMiddleware",          # Session
+    "django.middleware.common.CommonMiddleware",           # 通用请求处理
+    "django.middleware.csrf.CsrfViewMiddleware",           # CSRF 防护
+    "django.contrib.auth.middleware.AuthenticationMiddleware",          # 用户认证
+    "django.contrib.messages.middleware.MessageMiddleware",           # 消息系统
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",            # 防点击劫持
+    'allauth.account.middleware.AccountMiddleware',   # 添加这一行，allauth 账号中间件
 ]
 
+# 整个网站的“总路由表”在 shoplite/urls.py 这个文件里
 ROOT_URLCONF = "shoplite.urls"
 
+# 判断有没有这些中间件，将这些中间件插入
 if DEBUG and importlib.util.find_spec("debug_toolbar"):
     MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
 
 if importlib.util.find_spec("whitenoise"):
     MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
+# 把中间件django_htmx插到django.middleware.csrf.CsrfViewMiddleware前面
 if importlib.util.find_spec("django_htmx"):
     MIDDLEWARE.insert(MIDDLEWARE.index("django.middleware.csrf.CsrfViewMiddleware"), "django_htmx.middleware.HtmxMiddleware")
 
 TEMPLATES = [
     {
+        # 模板引擎用 DjangoTemplates
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / 'templates']
-        ,
+        # 额外模板目录是 `BASE_DIR / 'templates'`，也就是 `shoplite/templates/`
+        "DIRS": [BASE_DIR / 'templates'],
+        # APP_DIRS=True` 表示也会自动找各 app 下的 `templates/`
         "APP_DIRS": True,
+        # context processors 会给模板注入 `request`、`user`、messages 等常用变量
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -138,9 +176,10 @@ TEMPLATES = [
     },
 ]
 
+# 生产环境 Gunicorn 会通过这个对象启动 Django,如果用 WSGI 方式启动网站，入口对象在 shoplite/wsgi.py 文件里的 application 变量
 WSGI_APPLICATION = "shoplite.wsgi.application"
 
-
+# 如果有 `django-environ`，使用 `DATABASE_URL`,如果没有 environ，就手动配置 MySQL
 if environ:
     DATABASES = {
         "default": env.db(
@@ -163,17 +202,22 @@ else:
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
+# Django 内置的密码强度校验
 AUTH_PASSWORD_VALIDATORS = [
     {
+        # 不能太像用户名
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
+        # 不能太短
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
+        # 不能太常见
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
+        # 不能全是数字
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
@@ -193,13 +237,19 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
+# 浏览器访问静态资源的 URL 前缀
 STATIC_URL = "static/"
+# 是开发时额外查找静态文件的位置
 STATICFILES_DIRS = [BASE_DIR / "static"]
+# STATIC_ROOT` 是 `collectstatic` 收集静态资源的位置
 STATIC_ROOT = BASE_DIR / "staticfiles"
+#STORAGES` 中如果安装了 Whitenoise，就使用压缩和带 hash 的静态资源存储
 STORAGES = {
+    # 用户上传的文件
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
+    # 静态文件，css，js，不会去动的文件
     "staticfiles": {
         "BACKEND": (
             "whitenoise.storage.CompressedManifestStaticFilesStorage"
@@ -209,32 +259,82 @@ STORAGES = {
     },
 }
 
+# 用户上传的文件会存到这个文件夹
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# 登录后跳转 `/
 LOGIN_REDIRECT_URL = "/"
+# 退出后跳转 `/accounts/login/
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
+# allauth 登录方式用用户名
 ACCOUNT_LOGIN_METHODS = {"username"}
+# 注册字段要求用户名和两次密码
 ACCOUNT_SIGNUP_FIELDS = ["username*", "password1*", "password2*"]
+# 邮箱验证关闭
 ACCOUNT_EMAIL_VERIFICATION = "none"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
+# 所有模型自动生成的主键 id 字段，都用 大整数类型（BIGINT），这样数据量再大也不用担心主键不够用
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
+# 从.env或系统环境变量里读取支付密钥，本地开发时默认为空（不启用真实支付），生产环境由运维人员设置真实密钥，保证敏感信息不写死在代码里，SHOPLITE_PAYMENT_SECRET 是项目的支付密钥
 SHOPLITE_PAYMENT_SECRET = env_value("SHOPLITE_PAYMENT_SECRET", default="")
 
+
+# 这一整段都是跟短信发送和微信登录相关的配置，同样是从环境变量或.env文件里读取
+"""
+变量	                    管什么	                默认值	            生产环境要改吗
+SMS_PROVIDER	        选短信服务商	            console（不真实发送）	✅ 改成 tencent
+TENCENT_SMS_SECRET_ID	腾讯云密钥 ID	            空	                ✅ 填入真实值
+TENCENT_SMS_SECRET_KEY	腾讯云密钥 Key            空	                ✅ 填入真实值
+TENCENT_SMS_SDK_APP_ID	腾讯云应用 ID	            空	                ✅ 填入真实值
+TENCENT_SMS_SIGN_NAME	短信签名（如【ShopLite】）	空	                ✅ 填入审核通过的签名
+TENCENT_SMS_TEMPLATE_ID	短信模板 ID	            空	                ✅ 填入审核通过的模板
+TENCENT_SMS_REGION	    腾讯云区域	            ap-guangzhou	    一般不用改
+WECHAT_LOGIN_MODE	    微信登录模式	            mock（模拟）	        ✅ 改成 real
+"""
+SMS_PROVIDER = env_value("SMS_PROVIDER", default="console")
+TENCENT_SMS_SECRET_ID = env_value("TENCENT_SMS_SECRET_ID", default="")
+TENCENT_SMS_SECRET_KEY = env_value("TENCENT_SMS_SECRET_KEY", default="")
+TENCENT_SMS_SDK_APP_ID = env_value("TENCENT_SMS_SDK_APP_ID", default="")
+TENCENT_SMS_SIGN_NAME = env_value("TENCENT_SMS_SIGN_NAME", default="")
+TENCENT_SMS_TEMPLATE_ID = env_value("TENCENT_SMS_TEMPLATE_ID", default="")
+TENCENT_SMS_REGION = env_value("TENCENT_SMS_REGION", default="ap-guangzhou")
+WECHAT_LOGIN_MODE = env_value("WECHAT_LOGIN_MODE", default="mock")
+
+"""
+变量	              作用	            本地开发	                        生产环境
+REDIS_URL	      Redis服务地址	    用默认值redis://127.0.0.1:6379/0	如果改了Redis地址就修改
+USE_REDIS_CACHE	  是否用Redis做缓存	False（用本地内存，省事）	        ✅ 建议改为True，提升性能
+"""
 REDIS_URL = env_value("REDIS_URL", default="redis://127.0.0.1:6379/0")
 USE_REDIS_CACHE = env("USE_REDIS_CACHE") if environ else _env_bool("USE_REDIS_CACHE", False)
 
+'''
+Python 的三元表达式语法
+正常：
+if USE_REDIS_CACHE:
+    CACHES = {方案A: Redis缓存}
+else:
+    CACHES = {方案B: 本地内存缓存}
+三元：
+CACHES = (
+    { 方案A: Redis 缓存 }   ← 如果 USE_REDIS_CACHE = True
+    else
+    { 方案B: 本地内存缓存 } ← 如果 USE_REDIS_CACHE = False
+)
+
+'''
 CACHES = (
     {
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": REDIS_URL,
+            "LOCATION": REDIS_URL,    # 从环境变量读来的地址
         }
     }
     if USE_REDIS_CACHE
@@ -246,9 +346,28 @@ CACHES = (
     }
 )
 
+# 这是 Celery（异步任务队列）的配置。Celery用来处理那些不需要用户立即等到结果的后台任务
+'''
+配置	                      作用
+CELERY_BROKER_URL	      任务队列放 Redis 里
+CELERY_RESULT_BACKEND	  任务结果存 Redis 里
+CELERY_TIMEZONE	          时区设为北京时间
+CELERY_BEAT_SCHEDULE	  每5分钟自动取消超过30分钟未支付的订单
+'''
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_TIMEZONE = TIME_ZONE
+'''
+字段	     值	                                            解释
+任务名称	 "cancel-expired-pending-orders"	            只是一个标识名，方便管理
+task	 "shop.tasks.cancel_expired_pending_orders"	    告诉 Celery 去执行哪个函数，路径是 shop 应用下的 tasks.py 文件里的 cancel_expired_pending_orders 函数
+schedule 300.0	                                        每 300 秒（5 分钟）执行一次
+args	 (30,)	                                        传给函数的参数，这里是 30，表示"取消超过 30 分钟仍未支付的订单"
+'''
+# 终端 1：启动 Celery Worker（真正执行任务的人）
+# celery -A shoplite worker --loglevel=info
+# 终端 2：启动 Celery Beat（定时发任务的闹钟）
+# celery -A shoplite beat --loglevel=info
 CELERY_BEAT_SCHEDULE = {
     "cancel-expired-pending-orders": {
         "task": "shop.tasks.cancel_expired_pending_orders",
@@ -259,21 +378,23 @@ CELERY_BEAT_SCHEDULE = {
 
 
 # SimpleUI配置
-
-SIMPLEUI_HOME_INFO = False
-SIMPLEUI_HOME_QUICK = False
-SIMPLEUI_HOME_PAGE = ''
-SIMPLEUI_HOME_TITLE = 'ShopLite管理后台'
-SIMPLEUI_DEFAULT_THEME = 'simpleui.css'
-SIMPLEUI_LOGO = ''
+SIMPLEUI_HOME_INFO = False      # 关掉首页的"简易版使用说明"卡片
+SIMPLEUI_HOME_QUICK = False     # 关掉首页的"快捷操作"卡片
+SIMPLEUI_HOME_PAGE = ''         # 首页不跳转到外部的链接
+SIMPLEUI_HOME_TITLE = 'ShopLite管理后台'  # 浏览器标签页上显示的名称
+SIMPLEUI_DEFAULT_THEME = 'simpleui.css'  # 使用默认主题
+SIMPLEUI_LOGO = ''              # 左上角 logo 不设置图片
+# 核心菜单配置
 SIMPLEUI_CONFIG = {
-    "system_keep": True,
+    "system_keep": True,    # 保留 Django 自带的系统管理（用户、组等）
+    # 这一行决定了左侧导航栏从上到下显示哪些菜单分类，以及它们的前后顺序。把"系统管理"放在最上面，改一下顺序就行
     "menu_display": ["商品中心", "交易中心", "用户服务", "内容评价", "系统管理"],
-    "dynamic": False,
+    "dynamic": False,       # 菜单不会自动更新
+    # 每个菜单的具体内容
     "menus": [
         {
             "name": "商品中心",
-            "icon": "fas fa-box-open",
+            "icon": "fas fa-box-open",   # Font Awesome图标，"icon": "fas fa-XXX"是SimpleUI内部集成了这个图标库的写法
             "models": [
                 {"name": "分类管理", "icon": "fas fa-sitemap", "url": "shop/category/"},
                 {"name": "商品管理", "icon": "fas fa-store", "url": "shop/product/"},

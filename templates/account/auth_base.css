@@ -224,12 +224,20 @@ input {
     background: #f2f4f7;
 }
 
+.login-tabs-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .login-tab {
     height: 38px;
+    border: 0;
     display: grid;
     place-items: center;
     border-radius: 8px;
+    background: transparent;
     color: #66707d;
+    cursor: pointer;
+    font-family: inherit;
     font-size: 14px;
     font-weight: 700;
 }
@@ -308,8 +316,16 @@ input {
     border-radius: 9px;
     background: #fff7f3;
     color: #ff4d2e;
+    cursor: pointer;
     font-size: 13px;
     font-weight: 800;
+}
+
+.verify-btn:disabled {
+    border-color: #d7dce3;
+    background: #f4f6f8;
+    color: #8b95a1;
+    cursor: not-allowed;
 }
 
 .options-row {

@@ -76,6 +76,60 @@ class ProductImage(models.Model):
         return f"{self.product.name} 图片"
 
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, verbose_name="用户", on_delete=models.CASCADE, related_name="profile")
+    phone = models.CharField("手机号", max_length=20, unique=True, blank=True, null=True)
+    phone_verified_at = models.DateTimeField("手机号验证时间", blank=True, null=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+
+    class Meta:
+        verbose_name = "用户资料"
+        verbose_name_plural = "用户资料"
+
+    def __str__(self):
+        return f"{self.user.username} {self.phone or ''}".strip()
+
+
+class PhoneVerificationCode(models.Model):
+    PURPOSE_REGISTER = "register"
+    PURPOSE_LOGIN = "login"
+    PURPOSE_BIND = "bind"
+
+    PURPOSE_CHOICES = (
+        (PURPOSE_REGISTER, "手机号注册"),
+        (PURPOSE_LOGIN, "手机号登录"),
+        (PURPOSE_BIND, "绑定手机号"),
+    )
+
+    phone = models.CharField("手机号", max_length=20, db_index=True)
+    code = models.CharField("验证码", max_length=6)
+    purpose = models.CharField("用途", max_length=20, choices=PURPOSE_CHOICES)
+    created_at = models.DateTimeField("创建时间", default=timezone.now)
+    expires_at = models.DateTimeField("过期时间")
+    used_at = models.DateTimeField("使用时间", blank=True, null=True)
+    sent_to_backend = models.BooleanField("已提交短信通道", default=False)
+
+    class Meta:
+        verbose_name = "手机验证码"
+        verbose_name_plural = "手机验证码"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["phone", "purpose", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.phone} {self.purpose}"
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+    @property
+    def is_used(self):
+        return self.used_at is not None
+
+
 class CartItem(models.Model):
     user = models.ForeignKey(User, verbose_name="用户", on_delete=models.CASCADE)
     product = models.ForeignKey(Product, verbose_name="商品", on_delete=models.CASCADE)
