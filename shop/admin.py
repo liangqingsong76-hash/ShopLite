@@ -18,31 +18,50 @@ from .models import (
 )
 
 
-admin.site.site_header = "ShopLite 管理后台"
-admin.site.site_title = "ShopLite 后台"
-admin.site.index_title = "业务管理中心"
+admin.site.site_header = "ShopLite 管理后台"   # site_header`：后台顶部标题
+admin.site.site_title = "ShopLite 后台"    # site_title`：浏览器标题
+admin.site.index_title = "业务管理中心"    # index_title`：后台首页标题
 
 
-class ProductImageInline(admin.TabularInline):
+class ProductImageInline(admin.TabularInline):  # TabularInline 是 Django Admin 提供的一种内联展示方式，以表格形式展示关联的多个子记录。还有一个 StackedInline 是堆叠式（每个字段竖着排），TabularInline 更紧凑。
     model = ProductImage
+    # 编辑页面底部默认显示 1 行空白输入框，方便你直接添加新图片。如果设为 0，就不显示空白行，只能编辑已有的
     extra = 1
-    fields = ("image", "image_preview", "is_main", "sort_order")
-    readonly_fields = ("image_preview",)
+    '''
+    字段	            说明
+    image	        文件上传框，选图片文件
+    image_preview	图片预览（只读，自动生成）
+    is_main	        是否设为主图
+    sort_order	    排序
+    '''
+    fields = ("image", "image_preview", "is_main", "sort_order")   # 参数是models.py文件中ProductImage的属性
+    readonly_fields = ("image_preview",)   # 在编辑页面里，image_preview 这个字段只显示内容，不让用户修改
 
-    @admin.display(description="预览")
+    @admin.display(description="预览")  # 自定义表格这一列的标题文字
     def image_preview(self, obj):
-        if obj and obj.image:
+        if obj and obj.image:   # obj当前这一行对应的数据库记录对象
+            '''
+            obj.image.url：获取图片的访问地址
+            format_html(...)：安全地拼接HTML字符串，相当于如下标签：
+            <img src="/media/products/phone.jpg" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">
+            '''
             return format_html('<img src="{}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">', obj.image.url)
         return "-"
 
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
-    extra = 0
-    can_delete = False
+    extra = 0   # 不显示空白行
+    can_delete = False   # 不允许后台随便删订单明细
+    # fields 决定哪些字段显示在 Admin 页面上以及顺序如何，readonly_fields 决定哪些字段只能看不能改。
     readonly_fields = ("product", "product_name", "product_image", "price", "quantity", "subtotal")
     fields = ("product", "product_name", "price", "quantity", "subtotal")
 
+    '''
+    部分	                说明
+    has_add_permission	Django Admin 的内置钩子方法，用来控制是否允许新增记录
+    返回 False	        彻底禁用"新增"按钮，不能在订单下凭空添加明细
+    '''
     def has_add_permission(self, request, obj=None):
         return False
 
