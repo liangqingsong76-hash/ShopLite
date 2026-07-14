@@ -263,3 +263,30 @@ class PageAndProfileTests(TestCase):
         response = self.client.get(reverse("health"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
+
+
+class AdminPageTests(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            username="admin-page-user",
+            email="admin-page@example.test",
+            password="StrongAdminPass!2026",
+        )
+        category = Category.objects.create(name="后台测试分类")
+        Product.objects.create(name="后台测试商品", category=category, price=Decimal("199.00"), stock=10)
+        self.client.force_login(self.admin_user)
+
+    def test_core_admin_change_lists_render(self):
+        urls = (
+            reverse("admin:index"),
+            reverse("admin:auth_user_changelist"),
+            reverse("admin:shop_product_changelist"),
+            reverse("admin:shop_order_changelist"),
+            reverse("admin:shop_coupon_changelist"),
+            reverse("admin:shop_paymenttransaction_changelist"),
+            reverse("admin:shop_refundrequest_changelist"),
+            reverse("admin:shop_notification_changelist"),
+        )
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 200)

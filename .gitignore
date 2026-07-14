@@ -1,27 +1,62 @@
-# Python缓存
+# Python 缓存与测试产物
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
 
-# 虚拟环境
+# 虚拟环境（venv / virtualenv / Conda 项目内环境）
+.venv/
 venv/
 env/
+ENV/
+conda-env/
 
-# Django数据库
+# 本地数据库与备份（项目正式使用 MySQL）
 db.sqlite3
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
+backups/
+*.sql
+*.sql.gz
+*.dump
 
-# Django日志
+# Django、Celery 与进程运行文件
 *.log
+*.pid
+celerybeat-schedule*
 
-# 静态文件
+# 构建、静态收集和用户上传
 staticfiles/
 media/
+build/
+dist/
+*.egg-info/
 
-# PyCharm配置
+# 编辑器配置
 .idea/
+.vscode/
+*.iml
 
 # 系统文件
 .DS_Store
+Thumbs.db
+Desktop.ini
 
-
-# 配置文件
+# 本地配置与密钥；保留可提交的示例文件
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx

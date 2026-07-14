@@ -153,7 +153,8 @@ class ProductAdmin(admin.ModelAdmin):
     list_select_related = ("category", "category__parent")
     readonly_fields = ("created_at", "updated_at", "image_thumb_large")
     inlines = (ProductImageInline,)
-    date_hierarchy = "created_at"
+    # 不使用 date_hierarchy：MySQL 未安装时区表时，Django 的 CONVERT_TZ 会返回 NULL 并导致列表页 500。
+    # list_filter 中的 created_at 仍然提供按日期筛选，且不依赖服务器时区表。
     ordering = ("-created_at",)
     list_per_page = 30
     actions = ("set_active", "set_inactive", "set_hot", "set_recommended", "clear_marketing_flags")
@@ -250,7 +251,6 @@ class OrderAdmin(admin.ModelAdmin):
         "address_text", "coupon", "payment_method", "payment_no", "created_at", "paid_at",
     )
     inlines = (OrderItemInline,)
-    date_hierarchy = "created_at"
     ordering = ("-created_at",)
     list_select_related = ("user",)
     list_per_page = 30
@@ -388,7 +388,6 @@ class FavoriteAdmin(admin.ModelAdmin):
     list_filter = ("created_at",)
     search_fields = ("user__username", "product__name")
     list_select_related = ("user", "product")
-    date_hierarchy = "created_at"
 
 
 @admin.register(Review)
@@ -397,7 +396,6 @@ class ReviewAdmin(admin.ModelAdmin):
     list_filter = ("rating", "is_anonymous", "created_at")
     search_fields = ("product__name", "username", "content")
     list_select_related = ("product", "user")
-    date_hierarchy = "created_at"
     readonly_fields = ("created_at",)
 
 
@@ -408,7 +406,6 @@ class CouponAdmin(admin.ModelAdmin):
     search_fields = ("code", "name", "description")
     readonly_fields = ("claimed_count", "created_at")
     list_editable = ("is_active",)
-    date_hierarchy = "valid_until"
 
     @admin.display(description="领取情况")
     def stock_status(self, obj):

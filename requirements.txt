@@ -1,28 +1,23 @@
-asgiref==3.8.1
-backports.zoneinfo==0.2.1; python_version < "3.9"
-certifi==2026.5.20
-charset-normalizer==3.4.7
+# Web 与账号体系
 Django==4.2.30
 django-allauth==65.14.3
-django-crispy-forms==2.4
-django-debug-toolbar==4.4.6
 django-environ==0.11.2
-django-htmx==1.17.3
 django-simpleui==2026.1.13
-whitenoise==6.7.0
-idna==3.15
-itemadapter==0.11.0
-pillow==10.4.0
+
+# 数据库、图片与静态文件
 PyMySQL==1.1.1
-pytz==2026.2
-requests==2.32.4
-Scrapy==2.11.2
-sqlparse==0.5.5
-stripe==14.4.1
+pillow==10.4.0
+whitenoise==6.7.0
+
+# 异步任务与缓存
 celery==5.5.3
 redis==5.0.4
-gunicorn==21.2.0
-typing_extensions==4.13.2
-tzdata==2026.2
-urllib3==2.2.3
+
+# 手机短信
 tencentcloud-sdk-python==3.0.1422
+
+# 开发调试；仅在 DEBUG=True 时由项目加载
+django-debug-toolbar==4.4.6
+
+# Linux/Docker 生产 WSGI 服务，Windows 本地开发不安装
+gunicorn==21.2.0; platform_system != "Windows"

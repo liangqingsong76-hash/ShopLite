@@ -2,7 +2,49 @@
 
 ## 本地开发（PyCharm / shoplite 环境）
 
-项目 SDK 使用 `E:\envs\shoplite\python.exe`（Python 3.11）。本地默认使用已被 Git 忽略的 SQLite，无需先创建 `.env`：
+项目 SDK 使用 `E:\envs\shoplite\python.exe`（Python 3.11.15），数据库统一使用 MySQL 8，不再使用 SQLite。
+
+### 1. 配置 PyCharm
+
+1. 打开项目根目录（包含 `manage.py` 的目录）。
+2. 在 `Settings > Project > Python Interpreter` 选择现有解释器 `E:\envs\shoplite\python.exe`。
+3. 如果 PyCharm 显示旧名称“Python 3.8 (shoplite)”，以解释器路径和下面命令输出为准，名称只是本地标签：
+
+```powershell
+E:\envs\shoplite\python.exe --version
+```
+
+### 2. 安装依赖
+
+首次运行或 `requirements.txt` 更新后执行：
+
+```powershell
+E:\envs\shoplite\python.exe -m pip install -r requirements.txt
+E:\envs\shoplite\python.exe -m pip check
+```
+
+### 3. 准备 MySQL
+
+确认 Windows 的 `MySQL` 服务已启动，并创建 UTF-8 数据库（已存在时可以跳过创建）：
+
+```powershell
+Get-Service MySQL
+mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS shoplite CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+从 `.env.example` 复制一份 Git 忽略的 `.env`，填写本机数据库账号：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+```dotenv
+DATABASE_URL=mysql://root:你的本机密码@127.0.0.1:3306/shoplite
+```
+
+密码包含 `@`、`:`、`/` 等字符时，需要先进行 URL 编码。真实密码只能放在 `.env` 或服务器密钥管理中，不要写入源码、文档或 Git。
+
+### 4. 初始化并启动
 
 ```powershell
 E:\envs\shoplite\python.exe manage.py migrate
@@ -10,13 +52,34 @@ E:\envs\shoplite\python.exe manage.py seed_demo
 E:\envs\shoplite\python.exe manage.py runserver
 ```
 
-演示账号：
+其中 `seed_demo` 只用于本地验收，可重复执行；它会按业务标识准备演示数据，不会清空已有 MySQL 数据。正常开发启动后访问：
+
+- 商城：`http://127.0.0.1:8000/`
+- 登录：`http://127.0.0.1:8000/accounts/login/`
+- 管理后台：`http://127.0.0.1:8000/admin/`
+- 健康检查：`http://127.0.0.1:8000/health/`
+
+### 5. 本地演示账号
 
 - 管理员：`shoplite_admin` / `ShopLiteAdmin!2026`
 - 个人用户：`buyer_01`、`buyer_02`、`buyer_03` / `ShopLiteTest!2026`
 - 对应手机号：`13800000001`、`13800000002`、`13800000003`
 
-这些账号只用于本地验收。`seed_demo` 在生产环境默认拒绝运行。
+管理员账号用于 `/admin/`，个人账号用于商城登录页；个人账号既可输入用户名，也可输入对应手机号和密码登录。账号定义可在 `shop/management/commands/seed_demo.py` 查看。
+
+这些密码是公开的本地演示密码，不能用于生产。`seed_demo` 在生产环境默认拒绝运行；正式上线前应删除演示账号，或在后台为其设置不可用，并单独创建强密码管理员：
+
+```powershell
+E:\envs\shoplite\python.exe manage.py createsuperuser
+```
+
+### 6. 常用检查
+
+```powershell
+E:\envs\shoplite\python.exe manage.py check
+E:\envs\shoplite\python.exe manage.py makemigrations --check --dry-run
+E:\envs\shoplite\python.exe manage.py test shop.tests shop.test_extended
+```
 
 ## Docker 部署
 

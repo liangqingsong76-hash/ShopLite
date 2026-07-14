@@ -193,19 +193,25 @@ TEMPLATES = [
 # 生产环境 Gunicorn 会通过这个对象启动 Django,如果用 WSGI 方式启动网站，入口对象在 shoplite/wsgi.py 文件里的 application 变量
 WSGI_APPLICATION = "shoplite.wsgi.application"
 
-# 如果有 `django-environ`，使用 `DATABASE_URL`,如果没有 environ，就手动配置 MySQL
+# 项目统一使用 MySQL。连接信息必须放在环境变量或 Git 忽略的 .env 中，
+# 避免开发环境误连 SQLite，也避免把数据库密码提交到源码。
 if environ:
     DATABASES = {
         "default": env.db(
             "DATABASE_URL",
-            default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+            default="mysql://root:@127.0.0.1:3306/shoplite",
         )
     }
 else:
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.environ.get("MYSQL_DATABASE", "shoplite"),
+            "USER": os.environ.get("MYSQL_USER", "root"),
+            "PASSWORD": os.environ.get("MYSQL_PASSWORD", ""),
+            "HOST": os.environ.get("MYSQL_HOST", "127.0.0.1"),
+            "PORT": os.environ.get("MYSQL_PORT", "3306"),
+            "OPTIONS": {"charset": "utf8mb4"},
         }
     }
 
