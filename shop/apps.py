@@ -7,3 +7,11 @@ class ShopConfig(AppConfig):
     # 设置默认主键类型和 app 名，超大容量自增整数主键
     default_auto_field = "django.db.models.BigAutoField"
     name = "shop"
+
+    def ready(self):
+        # SimpleUI 会为其 iframe 布局移除点击劫持中间件；商城后台不依赖 iframe，恢复安全默认值。
+        from django.conf import settings
+
+        middleware = "django.middleware.clickjacking.XFrameOptionsMiddleware"
+        if middleware not in settings.MIDDLEWARE:
+            settings.MIDDLEWARE.append(middleware)

@@ -1,295 +1,60 @@
 {% extends "base.html" %}
 
-{% block title %}ShopLite - 账户设置{% endblock %}
+{% block title %}账户设置 - ShopLite{% endblock %}
 
 {% block extra_head %}
 <style>
-    .settings-page { max-width: 800px; margin: 0 auto; }
-    .set-card {
-        background: #fff;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        overflow: hidden;
-        margin-bottom: 14px;
-    }
-    .set-card-hd {
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--line);
-        font-weight: 700;
-        font-size: 15px;
-    }
-    .set-card-bd { padding: 20px; }
-
-    .set-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 14px 0;
-        border-bottom: 1px solid var(--line);
-    }
-    .set-row:last-child { border-bottom: 0; }
-    .set-row-label { font-size: 14px; font-weight: 500; min-width: 80px; }
-    .set-row-value { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
-    .set-row-action { font-size: 13px; color: var(--primary); cursor: pointer; font-weight: 500; transition: opacity var(--transition); }
-    .set-row-action:hover { opacity: 0.7; }
-    .set-row-action.danger { color: var(--danger); }
-    .set-avatar-sm {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #a78d6a, #d4c4a8);
-        display: grid;
-        place-items: center;
-        font-size: 20px;
-        color: #fff;
-        font-weight: 700;
-    }
-
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.4);
-        z-index: 9999;
-        display: none;
-        align-items: center;
-        justify-content: center;
-    }
-    .modal-overlay.show { display: flex; }
-    .modal-box {
-        background: #fff;
-        border-radius: var(--radius-lg);
-        padding: 28px;
-        width: min(440px, calc(100vw - 48px));
-        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-    }
-    .modal-box h3 { margin: 0 0 20px; font-size: 18px; }
-    .modal-box .form-input { margin-bottom: 14px; }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-
-    .logout-link {
-        display: block;
-        text-align: center;
-        padding: 16px;
-        margin-top: 14px;
-        color: var(--danger);
-        font-weight: 600;
-        font-size: 14px;
-        background: #fff;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        transition: background var(--transition);
-        text-decoration: none;
-    }
-    .logout-link:hover { background: #fff5f5; }
+  .settings-shell{max-width:920px;margin:auto}.settings-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:22px}
+  .settings-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:18px}.settings-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow-sm)}
+  .settings-card h2{font-size:17px;margin:0 0 18px}.settings-card .form-group{margin-bottom:16px}.settings-card textarea{resize:vertical}
+  .avatar-row{display:flex;align-items:center;gap:16px;margin-bottom:20px}.avatar-preview{width:72px;height:72px;border-radius:22px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:800;overflow:hidden}
+  .avatar-preview img{width:100%;height:100%;object-fit:cover}.check-row{display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.check-row input{margin-top:4px;width:18px;height:18px;accent-color:var(--ink)}
+  .field-errors,.errorlist{color:var(--danger);font-size:13px;margin:6px 0;padding-left:18px}.security-note{padding:14px;border-radius:12px;background:#faf8f3;color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:18px}
+  @media(max-width:760px){.settings-grid{grid-template-columns:1fr}.settings-card{padding:18px}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="crumb">
-    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
-    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
-    <span>账户设置</span>
+<div class="crumb"><a href="{% url 'shop:home' %}">首页</a><span>&gt;</span><a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span><span>账户设置</span></div>
+<div class="settings-shell">
+  <div class="settings-head"><div><h1 style="margin:0">账户设置</h1><p class="muted">管理公开资料、安全信息与通知偏好</p></div></div>
+  <div class="settings-grid">
+    <form class="settings-card" method="post" enctype="multipart/form-data">
+      {% csrf_token %}<input type="hidden" name="action" value="profile">
+      <h2>个人资料</h2>
+      <div class="avatar-row">
+        <div class="avatar-preview">{% if profile_obj.avatar %}<img src="{{ profile_obj.avatar.url }}" alt="当前头像">{% else %}{{ user.first_name|default:user.username|first|upper }}{% endif %}</div>
+        <div><label class="form-label" for="{{ settings_form.avatar.id_for_label }}">更换头像</label>{{ settings_form.avatar }}<p class="muted" style="font-size:12px;margin:6px 0 0">支持 JPG、PNG、WebP，建议使用正方形图片</p></div>
+      </div>
+      <div class="form-group"><label class="form-label" for="{{ settings_form.nickname.id_for_label }}">昵称</label><input class="form-input" id="{{ settings_form.nickname.id_for_label }}" name="nickname" value="{{ settings_form.nickname.value|default:'' }}" maxlength="150" required>{{ settings_form.nickname.errors }}</div>
+      <div class="form-group"><label class="form-label" for="{{ settings_form.email.id_for_label }}">邮箱</label><input class="form-input" id="{{ settings_form.email.id_for_label }}" name="email" type="email" value="{{ settings_form.email.value|default:'' }}" placeholder="用于接收账户通知">{{ settings_form.email.errors }}</div>
+      <div class="form-group"><label class="form-label" for="{{ settings_form.bio.id_for_label }}">个人简介</label><textarea class="form-input" id="{{ settings_form.bio.id_for_label }}" name="bio" rows="3" maxlength="160" placeholder="介绍一下自己">{{ settings_form.bio.value|default:'' }}</textarea>{{ settings_form.bio.errors }}</div>
+      <label class="check-row"><input type="checkbox" name="order_notifications" {% if settings_form.order_notifications.value %}checked{% endif %}><span><strong>订单通知</strong><br><small class="muted">支付、发货、退款等重要状态提醒</small></span></label>
+      <label class="check-row"><input type="checkbox" name="marketing_notifications" {% if settings_form.marketing_notifications.value %}checked{% endif %}><span><strong>优惠通知</strong><br><small class="muted">优惠券和限时活动提醒</small></span></label>
+      <button class="btn btn-primary" type="submit" style="margin-top:18px">保存资料</button>
+    </form>
+
+    <div>
+      <form class="settings-card" method="post">
+        {% csrf_token %}<input type="hidden" name="action" value="password">
+        <h2>登录安全</h2>
+        <div class="security-note">已绑定手机号：{% if profile_obj.phone %}{{ profile_obj.phone|slice:':3' }}****{{ profile_obj.phone|slice:'7:' }}{% else %}未绑定{% endif %}<br>修改密码后当前设备会保持登录，其他会话可由管理员统一清理。</div>
+        <div class="form-group"><label class="form-label" for="bindPhone">{% if profile_obj.phone %}更换手机号{% else %}绑定手机号{% endif %}</label><input class="form-input" id="bindPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="请输入新手机号"></div>
+        <div class="form-group" style="display:grid;grid-template-columns:1fr auto;gap:8px"><input class="form-input" id="bindCode" inputmode="numeric" maxlength="6" placeholder="短信验证码"><button class="btn btn-outline" id="sendBindCode" type="button">获取验证码</button></div>
+        <button class="btn btn-outline" id="submitBindPhone" type="button" style="margin-bottom:20px">确认绑定</button>
+        <p id="bindMessage" class="muted" style="font-size:13px"></p>
+        {{ password_form.non_field_errors }}
+        <div class="form-group"><label class="form-label">当前密码</label><input class="form-input" type="password" name="old_password" autocomplete="current-password" required>{{ password_form.old_password.errors }}</div>
+        <div class="form-group"><label class="form-label">新密码</label><input class="form-input" type="password" name="new_password1" autocomplete="new-password" required>{{ password_form.new_password1.errors }}</div>
+        <div class="form-group"><label class="form-label">确认新密码</label><input class="form-input" type="password" name="new_password2" autocomplete="new-password" required>{{ password_form.new_password2.errors }}</div>
+        <button class="btn btn-outline" type="submit">更新密码</button>
+      </form>
+      <form method="post" action="{% url 'account_logout' %}" style="margin-top:14px">{% csrf_token %}<button class="btn btn-outline" type="submit" style="width:100%;color:var(--danger)">安全退出</button></form>
+    </div>
+  </div>
 </div>
-
-<div class="settings-page">
-    <h1 style="margin:0 0 22px;">账户设置</h1>
-
-    <div class="set-card">
-        <div class="set-card-hd">个人信息</div>
-        <div class="set-card-bd">
-            <div class="set-row">
-                <span class="set-row-label">头像</span>
-                <div class="set-row-value">
-                    <div class="set-avatar-sm">{{ user.username|first|default:"U"|upper }}</div>
-                    <span class="set-row-action" onclick="openModal('avatar')">修改</span>
-                </div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">昵称</span>
-                <div class="set-row-value">
-                    <span>{{ user.username|default:"未设置" }}</span>
-                    <span class="set-row-action" onclick="openModal('nickname')">修改</span>
-                </div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">会员等级</span>
-                <div class="set-row-value">
-                    <span>普通会员</span>
-                    <span class="set-row-action">查看权益</span>
-                </div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">个性签名</span>
-                <div class="set-row-value">
-                    <span style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">品质生活，从这里开始</span>
-                    <span class="set-row-action" onclick="openModal('bio')">修改</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="set-card">
-        <div class="set-card-hd">安全设置</div>
-        <div class="set-card-bd">
-            <div class="set-row">
-                <span class="set-row-label">手机号</span>
-                <div class="set-row-value">
-                    <span>138****5678</span>
-                    <span class="set-row-action" onclick="openModal('phone')">修改</span>
-                </div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">邮箱</span>
-                <div class="set-row-value">
-                    <span>{{ user.email|default:"未绑定" }}</span>
-                    <span class="set-row-action" onclick="openModal('email')">{% if user.email %}修改{% else %}绑定{% endif %}</span>
-                </div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">登录密码</span>
-                <div class="set-row-value">
-                    <span>建议定期更换密码</span>
-                    <span class="set-row-action" onclick="openModal('password')">修改</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="set-card">
-        <div class="set-card-hd">偏好设置</div>
-        <div class="set-card-bd">
-            <div class="set-row">
-                <span class="set-row-label">语言</span>
-                <div class="set-row-value">
-                    <span>简体中文</span>
-                    <span class="set-row-action">切换</span>
-                </div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">消息通知</span>
-                <div class="set-row-value">
-                    <span>已开启</span>
-                    <span class="set-row-action">管理</span>
-                </div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">隐私设置</span>
-                <div class="set-row-value">
-                    <span>管理谁可以看我的动态</span>
-                    <span class="set-row-action">设置</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="set-card">
-        <div class="set-card-hd">关于</div>
-        <div class="set-card-bd">
-            <div class="set-row">
-                <span class="set-row-label">版本号</span>
-                <div class="set-row-value"><span>v1.0.0</span></div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">用户协议</span>
-                <div class="set-row-value"><span class="set-row-action">查看</span></div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">隐私政策</span>
-                <div class="set-row-value"><span class="set-row-action">查看</span></div>
-            </div>
-            <div class="set-row">
-                <span class="set-row-label">清除缓存</span>
-                <div class="set-row-value">
-                    <span>12.5 MB</span>
-                    <span class="set-row-action danger" onclick="clearCache()">清除</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {% if user.is_authenticated %}
-        <form method="post" action="{% url 'account_logout' %}">
-            {% csrf_token %}
-            <button class="logout-link" type="submit" style="width:100%;border:0;">退出登录</button>
-        </form>
-    {% endif %}
-</div>
-
-<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
-    <div class="modal-box" id="modalBox">
-        <h3 id="modalTitle">修改信息</h3>
-        <div id="modalBody"></div>
-        <div class="modal-actions">
-            <button class="btn btn-outline" onclick="closeModal()">取消</button>
-            <button class="btn btn-primary" onclick="saveModal()">保存</button>
-        </div>
-    </div>
-</div>
-
-<script>
-function openModal(type) {
-    var title = document.getElementById('modalTitle');
-    var body = document.getElementById('modalBody');
-    var overlay = document.getElementById('modalOverlay');
-    var html = '';
-    switch(type) {
-        case 'nickname':
-            title.textContent = '修改昵称';
-            html = '<input class="form-input" id="modalInput" value="{{ user.username|default:"" }}">';
-            break;
-        case 'phone':
-            title.textContent = '修改手机号';
-            html = '<input class="form-input" id="modalInput" placeholder="请输入新手机号">';
-            break;
-        case 'email':
-            title.textContent = '{% if user.email %}修改{% else %}绑定{% endif %}邮箱';
-            html = '<input class="form-input" id="modalInput" placeholder="请输入邮箱地址">';
-            break;
-        case 'password':
-            title.textContent = '修改密码';
-            html = '<input class="form-input" type="password" id="modalInput" placeholder="请输入新密码" style="margin-bottom:10px;">' +
-                   '<input class="form-input" type="password" id="modalInput2" placeholder="请确认新密码">';
-            break;
-        case 'bio':
-            title.textContent = '修改个性签名';
-            html = '<input class="form-input" id="modalInput" value="品质生活，从这里开始">';
-            break;
-        case 'avatar':
-            title.textContent = '修改头像';
-            html = '<p style="color:var(--muted);font-size:14px;text-align:center;padding:20px 0;">点击上传新头像（功能开发中）</p>';
-            break;
-    }
-    body.innerHTML = html;
-    overlay.dataset.type = type;
-    overlay.classList.add('show');
-}
-
-function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('show');
-}
-
-function saveModal() {
-    var type = document.getElementById('modalOverlay').dataset.type;
-    var input = document.getElementById('modalInput');
-    if (input) {
-        var val = input.value.trim();
-        if (!val) { return; }
-    }
-    closeModal();
-    showToast('设置已保存 ✓');
-}
-
-function clearCache() {
-    showToast('缓存已清除 ✓');
-}
-
-function showToast(msg) {
-    var t = document.createElement('div');
-    t.textContent = msg;
-    t.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);padding:12px 24px;background:var(--ink);color:#fff;border-radius:10px;font-weight:600;font-size:14px;z-index:99999;opacity:0;transition:opacity 0.3s;pointer-events:none;';
-    document.body.appendChild(t);
-    requestAnimationFrame(function() { t.style.opacity = '1'; });
-    setTimeout(function() { t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, 2000);
-}
-</script>
 {% endblock %}
+
+{% block extra_scripts %}<script>
+(function(){const phone=document.getElementById('bindPhone'),code=document.getElementById('bindCode'),send=document.getElementById('sendBindCode'),submit=document.getElementById('submitBindPhone'),message=document.getElementById('bindMessage'),csrf=document.querySelector('[name=csrfmiddlewaretoken]').value;async function post(url,payload){const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.error||'操作失败');return data}function show(text,ok){message.textContent=text;message.style.color=ok?'var(--success)':'var(--danger)'}send.addEventListener('click',async()=>{try{await post('/api/auth/phone/code/',{phone:phone.value,purpose:'bind'});show('验证码已发送；开发环境请查看服务控制台。',true);let n=60;send.disabled=true;const timer=setInterval(()=>{n-=1;send.textContent=n+'秒';if(n<=0){clearInterval(timer);send.disabled=false;send.textContent='获取验证码'}},1000)}catch(e){show(e.message,false)}});submit.addEventListener('click',async()=>{try{await post('/api/account/phone/bind/',{phone:phone.value,code:code.value});show('手机号绑定成功，页面即将刷新。',true);setTimeout(()=>location.reload(),700)}catch(e){show(e.message,false)}})})();
+</script>{% endblock %}

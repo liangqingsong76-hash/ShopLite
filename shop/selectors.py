@@ -1,10 +1,11 @@
 import json
 import logging
+from django.conf import settings
 
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
 
-from .models import CartItem, Category, Favorite, Order, Product
+from .models import CartItem, Category, Favorite, Notification, Order, Product
 
 logger = logging.getLogger(__name__)
 
@@ -126,15 +127,22 @@ def cart_count(user):
 def base_context(request):
     cart_items = []
     cart_total = 0
+    unread_notifications = 0
+    recent_notifications = []
 
     if request.user.is_authenticated:
         cart_items = list(cart_queryset(request.user)[:3])
         cart_total = sum(item.subtotal for item in cart_items)
+        unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
+        recent_notifications = list(Notification.objects.filter(user=request.user)[:3])
 
     return {
         "cart_count": cart_count(request.user),
         "cart_items": cart_items,
         "cart_total": cart_total,
+        "unread_notifications": unread_notifications,
+        "recent_notifications": recent_notifications,
+        "mock_payment_enabled": settings.DEBUG or settings.ENABLE_MOCK_PAYMENT,
     }
 
 

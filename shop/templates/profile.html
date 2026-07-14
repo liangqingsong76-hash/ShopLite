@@ -202,18 +202,18 @@
     <div>
         <div class="my-card">
             <div class="user-banner">
-                <div class="user-avatar-lg">{{ user.username|first|default:"U"|upper }}</div>
+                <div class="user-avatar-lg">{% if profile_obj.avatar %}<img src="{{ profile_obj.avatar.url }}" alt="头像" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">{% else %}{{ user.first_name|default:user.username|first|upper }}{% endif %}</div>
                 <div class="user-text">
-                    <h2>{{ user.username|default:"用户昵称" }}<span class="level">普通会员</span></h2>
-                    <p class="desc">品质生活，从这里开始</p>
+                    <h2>{{ user.first_name|default:user.username }}<span class="level">普通会员</span></h2>
+                    <p class="desc">{{ profile_obj.bio|default:"品质生活，从这里开始" }}</p>
                 </div>
                 <div class="user-stats">
                     <a class="user-stat" href="{% url 'shop:favorite_list' %}">
                         <span class="user-stat-num">{{ favorite_count }}</span>
                         <span class="user-stat-label">收藏</span>
                     </a>
-                    <a class="user-stat" href="#">
-                        <span class="user-stat-num">0</span>
+                    <a class="user-stat" href="{% url 'shop:history' %}">
+                        <span class="user-stat-num">{{ history_count }}</span>
                         <span class="user-stat-label">足迹</span>
                     </a>
                 </div>
@@ -362,7 +362,7 @@
         <div class="side-card">
             <div class="side-card-hd">我的资产</div>
             <div class="side-card-bd" style="display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:12px;">
-                <div><span style="font-size:22px;font-weight:800;">2</span><br><span style="font-size:11px;color:var(--muted);">优惠券</span></div>
+                <div><span style="font-size:22px;font-weight:800;">{{ coupon_count }}</span><br><span style="font-size:11px;color:var(--muted);">优惠券</span></div>
                 <div><span style="font-size:22px;font-weight:800;">0</span><br><span style="font-size:11px;color:var(--muted);">红包</span></div>
                 <div><span style="font-size:22px;font-weight:800;">120</span><br><span style="font-size:11px;color:var(--muted);">积分</span></div>
             </div>

@@ -142,10 +142,15 @@
 
     <div style="display:flex;gap:10px;justify-content:flex-end;">
         {% if order.status == 'pending' %}
-            <a class="btn btn-primary" href="{{ payment_url }}">立即支付</a>
+            {% if mock_payment_enabled %}<form method="post" action="{% url 'shop:mock_payment' order.id %}">{% csrf_token %}<button class="btn btn-primary" type="submit">模拟支付</button></form>{% else %}<button class="btn btn-primary" type="button" disabled>支付暂未开放</button>{% endif %}
+            <form method="post" action="{% url 'shop:order_cancel' order.id %}" onsubmit="return confirm('确定取消这个订单？')">{% csrf_token %}<button class="btn btn-outline" type="submit">取消订单</button></form>
         {% endif %}
+        {% if order.status == 'shipped' %}<form method="post" action="{% url 'shop:order_complete' order.id %}">{% csrf_token %}<button class="btn btn-primary" type="submit">确认收货</button></form>{% endif %}
         <a class="btn btn-outline" href="{% url 'shop:order_list' %}">返回订单列表</a>
         <a class="btn btn-outline" href="{% url 'shop:category' %}">继续购物</a>
     </div>
+    {% if order.status == 'paid' or order.status == 'shipped' or order.status == 'completed' %}
+    <div class="detail-card" style="margin-top:18px"><h3>申请退款/售后</h3><form method="post" action="{% url 'shop:refund_apply' order.id %}">{% csrf_token %}<div class="form-group"><label class="form-label">退款原因</label><select class="form-input" name="reason" required>{% for value,label in refund_form.fields.reason.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div><div class="form-group"><label class="form-label">问题描述</label><textarea class="form-input" name="description" rows="3" maxlength="1000" placeholder="请说明具体情况"></textarea></div><button class="btn btn-outline" type="submit">提交售后申请</button></form></div>
+    {% endif %}
 </div>
 {% endblock %}

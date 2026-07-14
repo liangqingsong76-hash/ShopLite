@@ -3,8 +3,10 @@ from django.conf.urls.static import static    # static：开发环境暴露媒�
 from django.contrib import admin    # admin：后台路由
 from django.urls import include, path   # include/path：Django URL 工具
 import importlib.util    # importlib：判断 debug_toolbar 是否存在
+from shop import views as shop_views
 
 urlpatterns = [
+    path("health/", shop_views.health_check, name="health"),
     path("admin/", admin.site.urls),   # /admin/` 到 Django 后台
     path("accounts/", include("allauth.urls")),     # /accounts/` 到 allauth 登录注册退出等账号路由
     path("api/", include("shop.api_urls")),    # /api/` 到项目 API

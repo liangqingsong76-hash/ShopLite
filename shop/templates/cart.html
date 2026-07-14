@@ -18,7 +18,7 @@
     }
     .cart-item {
         display: grid;
-        grid-template-columns: 28px 100px 1fr 120px 100px 100px;
+        grid-template-columns: 100px 1fr 100px 120px 110px 42px;
         align-items: center;
         gap: 18px;
         padding: 20px 24px;
@@ -106,11 +106,11 @@
     @media (max-width: 1100px) {
         .cart-layout { grid-template-columns: 1fr; }
         .cart-item {
-            grid-template-columns: 24px 70px 1fr;
+            grid-template-columns: 70px 1fr auto;
             gap: 12px;
             padding: 16px;
         }
-        .cart-item > :nth-child(n+4) { grid-column: 3; margin-top: 8px; }
+        .cart-item > :nth-child(n+4) { grid-column: 2 / -1; margin-top: 8px; }
         .cart-card-header { display: none; }
         .summary-card { position: static; }
     }
@@ -129,16 +129,15 @@
 <section class="cart-layout">
     <div class="cart-card">
         <div class="cart-card-header">
-            <span>全选</span>
             <span></span>
-            <span></span>
+            <span>商品</span>
             <span>单价</span>
             <span>数量</span>
             <span>小计</span>
+            <span>操作</span>
         </div>
         {% for item in cart_items %}
             <div class="cart-item">
-                <input type="checkbox" class="cart-item-check" checked>
                 <a class="cart-item-img" href="{% url 'shop:product_detail' item.product.id %}">
                     {% if item.product.image %}
                         <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
@@ -153,9 +152,9 @@
                 </div>
                 <div class="cart-item-price">¥{{ item.product.price }}</div>
                 <div class="qty-stepper">
-                    <button type="button">−</button>
+                    <button type="button" data-cart-quantity data-item-id="{{ item.id }}" data-quantity="{{ item.quantity|add:'-1' }}" {% if item.quantity <= 1 %}disabled{% endif %}>−</button>
                     <span>{{ item.quantity }}</span>
-                    <button type="button">+</button>
+                    <button type="button" data-cart-quantity data-item-id="{{ item.id }}" data-quantity="{{ item.quantity|add:'1' }}" {% if item.quantity >= item.product.stock %}disabled{% endif %}>+</button>
                 </div>
                 <div class="cart-item-subtotal">
                     <span class="price price-red">¥{{ item.subtotal }}</span>
@@ -177,7 +176,7 @@
         <div class="summary-total"><span>合计</span><span class="price-red">¥{{ total }}</span></div>
         <div class="summary-divider"></div>
         <div style="padding: 4px 12px; margin: 12px 0; background: #fafaf8; border-radius: var(--radius-sm); font-size: 13px; color: var(--muted); text-align: center;">
-            已享满减优惠 ¥30
+            {% if discount %}已享满减优惠 ¥{{ discount }}{% else %}满 ¥299 可减 ¥30{% endif %}
         </div>
         <a class="btn btn-primary btn-lg" href="{% url 'shop:checkout_page' %}" style="width: 100%; margin-top: 8px;">去结算（{{ cart_items|length }}）</a>
         <p class="muted" style="text-align: center; margin-top: 12px; font-size: 13px;">✓ 安全支付 · 100% 正品保障</p>
@@ -219,3 +218,7 @@
     </div>
 </section>
 {% endblock %}
+
+{% block extra_scripts %}<script>
+(function(){const csrf=document.querySelector('[name=csrfmiddlewaretoken]');document.querySelectorAll('[data-cart-quantity]').forEach((button)=>{button.addEventListener('click',async()=>{button.disabled=true;try{const response=await fetch('/api/cart/update/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf?csrf.value:''},body:JSON.stringify({item_id:Number(button.dataset.itemId),quantity:Number(button.dataset.quantity)})});const data=await response.json();if(!response.ok)throw new Error(data.error||'更新失败');location.reload()}catch(error){alert(error.message);button.disabled=false}})})})();
+</script>{% endblock %}

@@ -158,9 +158,9 @@
 
                     <div class="social-divider">其他登录方式</div>
                     <div class="social-grid">
-                        <a href="/api/auth/wechat/login/" aria-label="微信登录">微信</a>
-                        <a href="#" aria-label="支付宝登录">支付宝</a>
-                        <a href="#" aria-label="短信登录">短信</a>
+                        <button type="button" disabled title="功能暂未开放">微信（暂未开放）</button>
+                        <button type="button" disabled title="功能暂未开放">支付宝（暂未开放）</button>
+                        <button type="button" data-open-phone-login>短信登录</button>
                     </div>
 
                     <div class="agreement">
@@ -245,6 +245,9 @@
 
             tabs.forEach((tab) => {
                 tab.addEventListener("click", () => switchTab(tab.dataset.loginTab));
+            });
+            document.querySelectorAll("[data-open-phone-login]").forEach((button) => {
+                button.addEventListener("click", () => switchTab("phone"));
             });
 
             if (sendBtn) {

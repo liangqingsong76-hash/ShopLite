@@ -29,6 +29,9 @@ urlpatterns = [
     # 订单管理
     path("orders/", views.order_list, name="order_list"),
     path("order/<int:order_id>/", views.order_detail, name="order_detail"),
+    path("order/<int:order_id>/cancel/", views.order_cancel, name="order_cancel"),
+    path("order/<int:order_id>/complete/", views.order_complete, name="order_complete"),
+    path("order/<int:order_id>/refund/", views.refund_apply, name="refund_apply"),
 
     # 收货地址管理
     path("addresses/", views.address_list, name="address_list"),
@@ -44,6 +47,7 @@ urlpatterns = [
     # 我的服务
     path("history/", views.history, name="history"),
     path("coupons/", views.coupons, name="coupons"),
+    path("coupons/<int:coupon_id>/claim/", views.coupon_claim, name="coupon_claim"),
     path("service/", views.service, name="service"),
     path("refunds/", views.refunds, name="refunds"),
     path("bills/", views.bills, name="bills"),

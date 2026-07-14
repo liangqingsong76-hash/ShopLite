@@ -1,4 +1,6 @@
 from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse, JsonResponse
@@ -7,7 +9,25 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .models import Address, CartItem, Favorite, Order, Product
+from django.db import transaction
+from django.db.models import Sum
+from django.utils import timezone
+
+from .forms import AddressForm, ProfileSettingsForm, RefundRequestForm, SecurePasswordChangeForm
+from .models import (
+    Address,
+    BrowsingHistory,
+    CartItem,
+    Coupon,
+    Favorite,
+    Notification,
+    Order,
+    PaymentTransaction,
+    Product,
+    RefundRequest,
+    UserCoupon,
+    UserProfile,
+)
 from .payments import build_mock_payment_url, handle_payment_notification, parse_payment_payload
 from .selectors import (
     active_categories,
@@ -24,6 +44,10 @@ from .selectors import (
 from .services import (
     add_product_to_cart,
     calculate_cart_totals,
+    cancel_pending_order,
+    claim_coupon,
+    complete_order,
+    create_refund_request,
     create_order_from_cart,
     mark_order_paid,
     parse_decimal,
@@ -45,6 +69,19 @@ COLOR_OPTIONS = [
 
 def page_context(request, **kwargs):
     return {**base_context(request), **kwargs}
+
+
+def health_check(request):
+    """供 Docker/Kubernetes/负载均衡探活，不暴露业务数据。"""
+    from django.db import connection
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except Exception:
+        return JsonResponse({"status": "unhealthy"}, status=503)
+    return JsonResponse({"status": "ok"})
 
 
 @login_required(login_url="account_login")
@@ -174,6 +211,7 @@ def product_detail(request, product_id):
     product = get_product_detail(product_id)
     reviews, stats = review_stats(product)
     breadcrumbs = _product_breadcrumbs(product)
+    BrowsingHistory.objects.update_or_create(user=request.user, product=product)
 
     return render(
         request,
@@ -239,6 +277,8 @@ def add_to_cart(request, product_id):
         )
     except Product.DoesNotExist:
         messages.error(request, "商品不存在或已下架")
+    except ValidationError as exc:
+        messages.error(request, _first_error(exc))
     return redirect("shop:cart")
 
 
@@ -251,6 +291,7 @@ def remove_cart_item(request, item_id):
 
 @login_required(login_url="account_login")
 def profile(request):
+    profile_obj, _ = UserProfile.objects.get_or_create(user=request.user)
     return render(
         request,
         "profile.html",
@@ -259,28 +300,88 @@ def profile(request):
             recent_products=list_products(4, recommended=True),
             favorite_count=favorite_count(request.user),
             order_stats=order_stats(request.user),
+            profile_obj=profile_obj,
+            history_count=BrowsingHistory.objects.filter(user=request.user).count(),
+            coupon_count=UserCoupon.objects.filter(
+                user=request.user,
+                used_at__isnull=True,
+                coupon__valid_until__gt=timezone.now(),
+            ).count(),
         ),
     )
 
 
 @login_required(login_url="account_login")
 def settings(request):
-    return render(request, "settings.html", page_context(request))
+    profile_obj, _ = UserProfile.objects.get_or_create(user=request.user)
+    action = request.POST.get("action") if request.method == "POST" else ""
+    settings_form = ProfileSettingsForm(
+        request.POST if action == "profile" else None,
+        request.FILES if action == "profile" else None,
+        instance=profile_obj,
+        user=request.user,
+    )
+    password_form = SecurePasswordChangeForm(request.user, request.POST if action == "password" else None)
+    if action == "profile" and settings_form.is_valid():
+        settings_form.save()
+        messages.success(request, "账户资料已保存")
+        return redirect("shop:settings")
+    if action == "password" and password_form.is_valid():
+        user = password_form.save()
+        update_session_auth_hash(request, user)
+        messages.success(request, "密码修改成功")
+        return redirect("shop:settings")
+    return render(
+        request,
+        "settings.html",
+        page_context(request, profile_obj=profile_obj, settings_form=settings_form, password_form=password_form),
+    )
 
 
 @login_required(login_url="account_login")
 def notifications(request):
-    return render(request, "notifications.html", page_context(request))
+    items = list(Notification.objects.filter(user=request.user)[:100])
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return render(request, "notifications.html", page_context(request, notification_items=items))
 
 
 @login_required(login_url="account_login")
 def history(request):
-    return render(request, "history.html", page_context(request, products=list_products(8, recommended=True)))
+    period = request.GET.get("period", "all")
+    items = BrowsingHistory.objects.select_related("product").filter(user=request.user)
+    now = timezone.now()
+    if period == "today":
+        items = items.filter(viewed_at__date=timezone.localdate())
+    elif period == "week":
+        items = items.filter(viewed_at__gte=now - timezone.timedelta(days=7))
+    elif period == "month":
+        items = items.filter(viewed_at__gte=now - timezone.timedelta(days=30))
+    elif period != "all":
+        period = "all"
+    return render(request, "history.html", page_context(request, history_items=list(items[:100]), period=period))
 
 
 @login_required(login_url="account_login")
 def coupons(request):
-    return render(request, "coupons.html", page_context(request))
+    user_coupons = list(UserCoupon.objects.select_related("coupon").filter(user=request.user))
+    owned_ids = {item.coupon_id for item in user_coupons}
+    claimable = [coupon for coupon in Coupon.objects.filter(is_active=True) if coupon.id not in owned_ids and coupon.is_available]
+    return render(
+        request,
+        "coupons.html",
+        page_context(request, user_coupons=user_coupons, claimable_coupons=claimable),
+    )
+
+
+@require_POST
+@login_required(login_url="account_login")
+def coupon_claim(request, coupon_id):
+    try:
+        _, created = claim_coupon(request.user, coupon_id)
+        messages.success(request, "优惠券领取成功" if created else "您已经领取过这张优惠券")
+    except (Coupon.DoesNotExist, ValidationError) as exc:
+        messages.error(request, _first_error(exc))
+    return redirect("shop:coupons")
 
 
 @login_required(login_url="account_login")
@@ -290,12 +391,46 @@ def service(request):
 
 @login_required(login_url="account_login")
 def refunds(request):
-    return render(request, "refunds.html", page_context(request))
+    refund_items = RefundRequest.objects.select_related("order").prefetch_related("order__items").filter(user=request.user)
+    return render(request, "refunds.html", page_context(request, refund_items=list(refund_items)))
 
 
 @login_required(login_url="account_login")
 def bills(request):
-    return render(request, "bills.html", page_context(request))
+    payments = PaymentTransaction.objects.select_related("order").filter(
+        order__user=request.user,
+        status=PaymentTransaction.STATUS_SUCCESS,
+    )
+    refunds_qs = RefundRequest.objects.select_related("order").filter(
+        user=request.user,
+        status=RefundRequest.STATUS_COMPLETED,
+    )
+    month_start = timezone.localtime().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_spend = payments.filter(completed_at__gte=month_start).aggregate(total=Sum("amount"))["total"] or 0
+    monthly_refund = refunds_qs.filter(completed_at__gte=month_start).aggregate(total=Sum("amount"))["total"] or 0
+    total_spend = payments.aggregate(total=Sum("amount"))["total"] or 0
+    entries = sorted(
+        [
+            {"kind": "payment", "title": "商品购买", "no": p.order.order_no, "amount": p.amount, "time": p.completed_at}
+            for p in payments
+        ] + [
+            {"kind": "refund", "title": "退款到账", "no": r.refund_no, "amount": r.amount, "time": r.completed_at}
+            for r in refunds_qs
+        ],
+        key=lambda item: item["time"],
+        reverse=True,
+    )
+    return render(
+        request,
+        "bills.html",
+        page_context(
+            request,
+            monthly_spend=monthly_spend,
+            monthly_refund=monthly_refund,
+            total_spend=total_spend,
+            bill_entries=entries[:100],
+        ),
+    )
 
 
 @login_required(login_url="account_login")
@@ -311,6 +446,13 @@ def checkout(request):
 
     totals = calculate_cart_totals(cart_items)
     addresses = Address.objects.filter(user=request.user).order_by("-is_default", "-created_at")
+    usable_coupons = []
+    for user_coupon in UserCoupon.objects.select_related("coupon").filter(user=request.user, used_at__isnull=True):
+        try:
+            calculate_cart_totals(cart_items, user_coupon=user_coupon)
+        except ValidationError:
+            continue
+        usable_coupons.append(user_coupon)
     return render(
         request,
         "checkout.html",
@@ -321,6 +463,7 @@ def checkout(request):
             discount=totals.discount,
             total=totals.payable,
             addresses=list(addresses),
+            usable_coupons=usable_coupons,
         ),
     )
 
@@ -329,7 +472,12 @@ def checkout(request):
 @login_required(login_url="account_login")
 def place_order(request):
     try:
-        order = create_order_from_cart(request.user, address_id=request.POST.get("address_id"))
+        order = create_order_from_cart(
+            request.user,
+            address_id=request.POST.get("address_id"),
+            user_coupon_id=request.POST.get("user_coupon_id") or None,
+            payment_method=request.POST.get("payment_method", Order.PAYMENT_MOCK),
+        )
     except ValidationError as exc:
         messages.error(request, _first_error(exc))
         return redirect("shop:cart")
@@ -361,15 +509,19 @@ def order_detail(request, order_id):
             request,
             order=order,
             payment_url=build_mock_payment_url(request, order) if order.status == Order.STATUS_PENDING else "",
+            refund_form=RefundRequestForm(),
         ),
     )
 
 
+@require_POST
 @login_required(login_url="account_login")
 def mock_payment(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
     try:
-        order, changed = mark_order_paid(order)
+        if not (django_settings.DEBUG or django_settings.ENABLE_MOCK_PAYMENT):
+            raise ValidationError("模拟支付未开启")
+        order, changed = mark_order_paid(order, provider=Order.PAYMENT_MOCK)
     except ValidationError as exc:
         messages.error(request, _first_error(exc))
         return redirect("shop:order_detail", order_id=order.id)
@@ -401,19 +553,54 @@ def payment_notify(request):
 @csrf_exempt
 @require_POST
 def alipay_notify(request):
-    try:
-        handle_payment_notification(parse_payment_payload(request))
-    except (Order.DoesNotExist, ValidationError):
-        return HttpResponse("fail")
-    return HttpResponse("success")
+    # 预留支付宝异步通知入口。接入支付宝 SDK 并完成 RSA2 验签前绝不修改订单状态。
+    return HttpResponse("not_enabled", status=503)
 
 
 @login_required(login_url="account_login")
 def create_checkout_session(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
-    if order.status != Order.STATUS_PENDING:
-        return redirect("shop:order_detail", order_id=order.id)
-    return redirect("shop:mock_payment", order_id=order.id)
+    if order.status == Order.STATUS_PENDING:
+        messages.info(request, "请在订单详情页选择已开放的支付方式")
+    return redirect("shop:order_detail", order_id=order.id)
+
+
+@require_POST
+@login_required(login_url="account_login")
+def order_cancel(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    _, changed = cancel_pending_order(order)
+    messages.success(request, "订单已取消" if changed else "当前订单不能取消")
+    return redirect("shop:order_detail", order_id=order.id)
+
+
+@require_POST
+@login_required(login_url="account_login")
+def order_complete(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    _, changed = complete_order(order)
+    if changed:
+        messages.success(request, "已确认收货")
+    else:
+        messages.error(request, "只有待收货订单可以确认收货")
+    return redirect("shop:order_detail", order_id=order.id)
+
+
+@require_POST
+@login_required(login_url="account_login")
+def refund_apply(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    form = RefundRequestForm(request.POST)
+    if form.is_valid():
+        try:
+            create_refund_request(request.user, order, **form.cleaned_data)
+            messages.success(request, "售后申请已提交")
+            return redirect("shop:refunds")
+        except ValidationError as exc:
+            messages.error(request, _first_error(exc))
+    else:
+        messages.error(request, "请正确填写售后信息")
+    return redirect("shop:order_detail", order_id=order.id)
 
 
 @login_required(login_url="account_login")
@@ -424,19 +611,33 @@ def address_list(request):
 
 @login_required(login_url="account_login")
 def address_add(request):
+    form = AddressForm(request.POST or None)
     if request.method == "POST":
-        if _save_address_from_request(request):
+        if form.is_valid():
+            address = form.save(commit=False)
+            address.user = request.user
+            _save_default_address(address)
             return redirect("shop:address_list")
-    return render(request, "address_form.html", page_context(request))
+    return render(request, "address_form.html", page_context(request, form=form))
 
 
 @login_required(login_url="account_login")
 def address_edit(request, address_id):
     address = get_object_or_404(Address, id=address_id, user=request.user)
+    form = AddressForm(request.POST or None, instance=address)
     if request.method == "POST":
-        if _save_address_from_request(request, address):
+        if form.is_valid():
+            _save_default_address(form.save(commit=False))
             return redirect("shop:address_list")
-    return render(request, "address_form.html", page_context(request, address=address, edit=True))
+    return render(request, "address_form.html", page_context(request, address=address, edit=True, form=form))
+
+
+@transaction.atomic
+def _save_default_address(address):
+    if address.is_default or not Address.objects.filter(user=address.user).exclude(id=address.id).exists():
+        Address.objects.filter(user=address.user, is_default=True).exclude(id=address.id).update(is_default=False)
+        address.is_default = True
+    address.save()
 
 
 def _save_address_from_request(request, address=None):
@@ -467,12 +668,21 @@ def _save_address_from_request(request, address=None):
     return True
 
 
+@require_POST
 @login_required(login_url="account_login")
 def address_delete(request, address_id):
-    get_object_or_404(Address, id=address_id, user=request.user).delete()
+    address = get_object_or_404(Address, id=address_id, user=request.user)
+    was_default = address.is_default
+    address.delete()
+    if was_default:
+        replacement = Address.objects.filter(user=request.user).order_by("-created_at").first()
+        if replacement:
+            replacement.is_default = True
+            replacement.save(update_fields=["is_default"])
     return redirect("shop:address_list")
 
 
+@require_POST
 @login_required(login_url="account_login")
 def address_set_default(request, address_id):
     address = get_object_or_404(Address, id=address_id, user=request.user)

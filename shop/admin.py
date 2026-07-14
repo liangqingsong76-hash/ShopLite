@@ -1,21 +1,29 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.utils import timezone
 from django.utils.html import format_html
 
 from .models import (
     Address,
+    BrowsingHistory,
     CartItem,
     Category,
+    Coupon,
     Favorite,
+    Notification,
     Order,
     OrderItem,
+    PaymentTransaction,
     PhoneVerificationCode,
     Product,
     ProductImage,
     Review,
+    RefundRequest,
+    UserCoupon,
     UserProfile,
 )
+from .services import cancel_pending_order, complete_order, complete_refund, mark_order_paid, mark_order_shipped
 
 
 admin.site.site_header = "ShopLite 管理后台"   # site_header`：后台顶部标题
@@ -237,7 +245,10 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = ("order_no", "user", "status_badge", "pay_amount", "items_count", "address_summary", "created_at", "paid_at")
     list_filter = ("status", "created_at", "paid_at")
     search_fields = ("order_no", "user__username", "address_text", "items__product_name")
-    readonly_fields = ("created_at", "paid_at")
+    readonly_fields = (
+        "order_no", "user", "status", "total_amount", "discount_amount", "shipping_fee", "pay_amount",
+        "address_text", "coupon", "payment_method", "payment_no", "created_at", "paid_at",
+    )
     inlines = (OrderItemInline,)
     date_hierarchy = "created_at"
     ordering = ("-created_at",)
@@ -245,8 +256,8 @@ class OrderAdmin(admin.ModelAdmin):
     list_per_page = 30
     actions = ("mark_paid", "mark_shipped", "mark_completed", "mark_cancelled")
     fieldsets = (
-        ("订单信息", {"fields": ("order_no", "user", "status")}),
-        ("金额信息", {"fields": ("total_amount", "discount_amount", "shipping_fee", "pay_amount")}),
+        ("订单信息", {"fields": ("order_no", "user", "status", "coupon")}),
+        ("金额信息", {"fields": ("total_amount", "discount_amount", "shipping_fee", "pay_amount", "payment_method", "payment_no")}),
         ("收货信息", {"fields": ("address_text",)}),
         ("时间信息", {"fields": ("created_at", "paid_at")}),
     )
@@ -277,19 +288,43 @@ class OrderAdmin(admin.ModelAdmin):
 
     @admin.action(description="标记为待发货")
     def mark_paid(self, request, queryset):
-        queryset.filter(status=Order.STATUS_PENDING).update(status=Order.STATUS_PAID, paid_at=timezone.now())
+        from django.conf import settings
+
+        if not (settings.DEBUG or settings.ENABLE_MOCK_PAYMENT):
+            self.message_user(request, "生产环境未开启模拟支付，不能从后台伪造付款", messages.ERROR)
+            return
+        changed = failed = 0
+        for order in queryset:
+            try:
+                _, did_change = mark_order_paid(order, provider=Order.PAYMENT_MOCK)
+                changed += int(did_change)
+            except ValidationError:
+                failed += 1
+        self.message_user(request, f"成功确认 {changed} 个订单，跳过/失败 {failed} 个", messages.SUCCESS if not failed else messages.WARNING)
 
     @admin.action(description="标记为待收货")
     def mark_shipped(self, request, queryset):
-        queryset.filter(status=Order.STATUS_PAID).update(status=Order.STATUS_SHIPPED)
+        changed = 0
+        for order in queryset:
+            _, did_change = mark_order_shipped(order)
+            changed += int(did_change)
+        self.message_user(request, f"已将 {changed} 个订单标记为待收货", messages.SUCCESS)
 
     @admin.action(description="标记为已完成")
     def mark_completed(self, request, queryset):
-        queryset.filter(status__in=(Order.STATUS_PAID, Order.STATUS_SHIPPED)).update(status=Order.STATUS_COMPLETED)
+        changed = 0
+        for order in queryset:
+            _, did_change = complete_order(order)
+            changed += int(did_change)
+        self.message_user(request, f"已完成 {changed} 个待收货订单", messages.SUCCESS)
 
     @admin.action(description="取消待付款订单")
     def mark_cancelled(self, request, queryset):
-        queryset.filter(status=Order.STATUS_PENDING).update(status=Order.STATUS_CANCELLED)
+        changed = 0
+        for order in queryset:
+            _, did_change = cancel_pending_order(order)
+            changed += int(did_change)
+        self.message_user(request, f"已取消 {changed} 个待付款订单", messages.SUCCESS)
 
 
 @admin.register(OrderItem)
@@ -326,7 +361,7 @@ class PhoneVerificationCodeAdmin(admin.ModelAdmin):
     list_display = ("phone", "purpose", "created_at", "expires_at", "used_at", "sent_to_backend")
     list_filter = ("purpose", "sent_to_backend", "created_at", "used_at")
     search_fields = ("phone",)
-    readonly_fields = ("phone", "code", "purpose", "created_at", "expires_at", "used_at", "sent_to_backend")
+    readonly_fields = ("phone", "code", "purpose", "created_at", "expires_at", "used_at", "attempt_count", "last_attempt_at", "sent_to_backend")
 
     def has_add_permission(self, request):
         return False
@@ -338,7 +373,6 @@ class AddressAdmin(admin.ModelAdmin):
     list_filter = ("is_default", "province", "city", "created_at")
     search_fields = ("user__username", "receiver", "phone", "detail")
     list_select_related = ("user",)
-    list_editable = ("is_default",)
     ordering = ("-is_default", "-created_at")
     list_per_page = 30
     fieldsets = (
@@ -365,3 +399,106 @@ class ReviewAdmin(admin.ModelAdmin):
     list_select_related = ("product", "user")
     date_hierarchy = "created_at"
     readonly_fields = ("created_at",)
+
+
+@admin.register(Coupon)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "discount_type", "value", "minimum_spend", "stock_status", "valid_from", "valid_until", "is_active")
+    list_filter = ("discount_type", "is_active", "valid_from", "valid_until")
+    search_fields = ("code", "name", "description")
+    readonly_fields = ("claimed_count", "created_at")
+    list_editable = ("is_active",)
+    date_hierarchy = "valid_until"
+
+    @admin.display(description="领取情况")
+    def stock_status(self, obj):
+        return f"{obj.claimed_count} / {obj.total_quantity or '不限量'}"
+
+
+@admin.register(UserCoupon)
+class UserCouponAdmin(admin.ModelAdmin):
+    list_display = ("user", "coupon", "status_display", "claimed_at", "used_at")
+    list_filter = ("coupon", "claimed_at", "used_at")
+    search_fields = ("user__username", "coupon__code", "coupon__name")
+    list_select_related = ("user", "coupon")
+    readonly_fields = ("claimed_at", "used_at")
+
+    @admin.display(description="状态")
+    def status_display(self, obj):
+        return {"available": "可使用", "used": "已使用", "expired": "已过期"}.get(obj.status, obj.status)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(PaymentTransaction)
+class PaymentTransactionAdmin(admin.ModelAdmin):
+    list_display = ("transaction_no", "order", "provider", "amount", "status", "created_at", "completed_at")
+    list_filter = ("provider", "status", "created_at")
+    search_fields = ("transaction_no", "order__order_no", "order__user__username")
+    list_select_related = ("order", "order__user")
+    readonly_fields = ("order", "provider", "transaction_no", "amount", "status", "raw_payload", "created_at", "completed_at")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(RefundRequest)
+class RefundRequestAdmin(admin.ModelAdmin):
+    list_display = ("refund_no", "order", "user", "amount", "status", "created_at", "completed_at")
+    list_filter = ("status", "created_at", "completed_at")
+    search_fields = ("refund_no", "order__order_no", "user__username", "reason")
+    list_select_related = ("order", "user")
+    readonly_fields = ("refund_no", "order", "user", "amount", "status", "order_status_before", "reason", "description", "created_at", "updated_at", "completed_at")
+    actions = ("approve_refunds", "complete_refunds", "reject_refunds")
+
+    @admin.action(description="同意所选退款")
+    def approve_refunds(self, request, queryset):
+        count = queryset.filter(status=RefundRequest.STATUS_PENDING).update(status=RefundRequest.STATUS_APPROVED)
+        self.message_user(request, f"已同意 {count} 条退款申请", messages.SUCCESS)
+
+    @admin.action(description="完成所选退款并回补库存")
+    def complete_refunds(self, request, queryset):
+        changed = failed = 0
+        for refund in queryset:
+            try:
+                _, did_change = complete_refund(refund)
+                changed += int(did_change)
+            except ValidationError:
+                failed += 1
+        self.message_user(request, f"完成 {changed} 条，跳过/失败 {failed} 条", messages.SUCCESS if not failed else messages.WARNING)
+
+    @admin.action(description="拒绝所选退款")
+    def reject_refunds(self, request, queryset):
+        count = queryset.filter(status=RefundRequest.STATUS_PENDING).update(status=RefundRequest.STATUS_REJECTED)
+        for refund in queryset.filter(status=RefundRequest.STATUS_REJECTED).select_related("order"):
+            if refund.order.status == Order.STATUS_REFUND:
+                refund.order.status = refund.order_status_before
+                refund.order.save(update_fields=["status"])
+        self.message_user(request, f"已拒绝 {count} 条退款申请", messages.SUCCESS)
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("title", "user", "category", "is_read", "created_at")
+    list_filter = ("category", "is_read", "created_at")
+    search_fields = ("title", "content", "user__username")
+    list_select_related = ("user",)
+    readonly_fields = ("created_at",)
+
+
+@admin.register(BrowsingHistory)
+class BrowsingHistoryAdmin(admin.ModelAdmin):
+    list_display = ("user", "product", "viewed_at")
+    search_fields = ("user__username", "product__name")
+    list_select_related = ("user", "product")
+    readonly_fields = ("user", "product", "viewed_at")
+
+    def has_add_permission(self, request):
+        return False

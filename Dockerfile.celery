@@ -14,4 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt celery redis
 
 COPY . .
 
+RUN addgroup --system shoplite \
+    && adduser --system --ingroup shoplite shoplite \
+    && chown -R shoplite:shoplite /app
+USER shoplite
+
 CMD ["celery", "-A", "shoplite", "worker", "-l", "info"]

@@ -36,17 +36,16 @@
     <div class="toolbar">
         <h1>我的足迹</h1>
         <div class="date-tabs">
-            <span class="date-tab active">全部</span>
-            <span class="date-tab">今天</span>
-            <span class="date-tab">本周</span>
-            <span class="date-tab">本月</span>
-            <span class="date-tab">更早</span>
+            <a class="date-tab {% if period == 'all' %}active{% endif %}" href="?period=all">全部</a>
+            <a class="date-tab {% if period == 'today' %}active{% endif %}" href="?period=today">今天</a>
+            <a class="date-tab {% if period == 'week' %}active{% endif %}" href="?period=week">近 7 天</a>
+            <a class="date-tab {% if period == 'month' %}active{% endif %}" href="?period=month">近 30 天</a>
         </div>
     </div>
 
-    {% if products %}
+    {% if history_items %}
         <div class="product-grid">
-            {% for product in products %}
+            {% for item in history_items %}{% with product=item.product %}
                 <article class="product-card">
                     <a href="{% url 'shop:product_detail' product.id %}" style="display:block;">
                         <div class="product-image">
@@ -64,7 +63,7 @@
                         <div class="price" style="margin-top:4px;">¥{{ product.price }}</div>
                     </a>
                 </article>
-            {% endfor %}
+            {% endwith %}{% endfor %}
         </div>
     {% else %}
         <div class="empty-state">

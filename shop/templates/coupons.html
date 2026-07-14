@@ -1,104 +1,13 @@
 {% extends "base.html" %}
-
-{% block title %}ShopLite - 优惠券{% endblock %}
-
-{% block extra_head %}
-<style>
-    .page-wrap { max-width: 900px; margin: 0 auto; }
-    .tabs { display: flex; gap: 0; margin-bottom: 22px; border-bottom: 1.5px solid var(--line); }
-    .tab {
-        padding: 12px 22px;
-        font-weight: 600;
-        font-size: 14px;
-        border-bottom: 2px solid transparent;
-        cursor: pointer;
-        color: var(--muted);
-        transition: all var(--transition);
-    }
-    .tab.active { border-bottom-color: var(--ink); color: var(--ink); }
-    .coupon-card {
-        display: grid;
-        grid-template-columns: 100px 1fr auto;
-        align-items: center;
-        gap: 20px;
-        padding: 20px;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        margin-bottom: 10px;
-        background: #fff;
-        transition: all var(--transition);
-    }
-    .coupon-card:hover { border-color: var(--ink); box-shadow: var(--shadow-sm); }
-    .coupon-card.used { opacity: 0.45; }
-    .coupon-card .amt {
-        font-size: 36px;
-        font-weight: 800;
-        color: var(--danger);
-        text-align: center;
-    }
-    .coupon-card .amt .unit { font-size: 16px; font-weight: 600; }
-    .coupon-card .info h4 { margin: 0 0 6px; font-size: 15px; }
-    .coupon-card .info p { margin: 0; font-size: 13px; color: var(--muted); }
-    .coupon-card .expire { font-size: 12px; color: var(--muted); margin-top: 4px; }
-    .tag-used {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background: var(--line);
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 600;
-        margin-left: 6px;
-    }
-    .empty-state { text-align: center; padding: 64px 20px; color: var(--muted); }
-    .empty-state-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
-</style>
-{% endblock %}
-
+{% block title %}优惠券 - ShopLite{% endblock %}
+{% block extra_head %}<style>
+.coupon-shell{max-width:920px;margin:auto}.coupon-section{margin:26px 0}.coupon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.coupon-card{display:grid;grid-template-columns:105px 1fr;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm)}
+.coupon-value{background:linear-gradient(145deg,#241f1a,#675743);color:#fff;display:grid;place-items:center;text-align:center;padding:18px 10px;font-size:28px;font-weight:800}.coupon-value small{display:block;font-size:11px;font-weight:500;opacity:.75}.coupon-info{padding:18px}.coupon-info h3{margin:0 0 6px;font-size:16px}.coupon-info p{font-size:12px;color:var(--muted);line-height:1.65;margin:3px 0}.coupon-card.used,.coupon-card.expired{filter:grayscale(1);opacity:.58}.coupon-action{margin-top:12px;display:flex;justify-content:space-between;align-items:center}.status-pill{font-size:11px;padding:4px 9px;border-radius:999px;background:var(--soft)}
+@media(max-width:700px){.coupon-grid{grid-template-columns:1fr}}
+</style>{% endblock %}
 {% block content %}
-<div class="crumb">
-    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
-    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
-    <span>优惠券</span>
-</div>
-
-<div class="page-wrap">
-    <h1 style="margin:0 0 20px;">优惠券</h1>
-
-    <div class="tabs">
-        <span class="tab active">未使用<span style="color:var(--muted);margin-left:4px;">2</span></span>
-        <span class="tab">已使用<span style="color:var(--muted);margin-left:4px;">1</span></span>
-        <span class="tab">已过期<span style="color:var(--muted);margin-left:4px;">0</span></span>
-    </div>
-
-    <div class="coupon-card">
-        <div class="amt"><span class="unit">¥</span>30</div>
-        <div class="info">
-            <h4>全品类通用券</h4>
-            <p>满 ¥299 可用 · 全场通用</p>
-            <div class="expire">有效期至 2026-07-31</div>
-        </div>
-        <a class="btn btn-sm" href="{% url 'shop:category' %}">去使用</a>
-    </div>
-
-    <div class="coupon-card">
-        <div class="amt"><span class="unit">折</span>9</div>
-        <div class="info">
-            <h4>家居日用专享</h4>
-            <p>满 ¥199 可用 · 限家居生活品类</p>
-            <div class="expire">有效期至 2026-07-15</div>
-        </div>
-        <a class="btn btn-sm" href="{% url 'shop:category' %}?category=家居生活">去使用</a>
-    </div>
-
-    <h3 style="margin:28px 0 14px;">已使用</h3>
-    <div class="coupon-card used">
-        <div class="amt" style="color:var(--muted);"><span class="unit">¥</span>10</div>
-        <div class="info">
-            <h4>新人专享券 <span class="tag-used">已使用</span></h4>
-            <p>满 ¥99 可用 · 全场通用</p>
-            <div class="expire">已使用于 2026-07-03</div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+<div class="crumb"><a href="{% url 'shop:home' %}">首页</a><span>&gt;</span><a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span><span>优惠券</span></div>
+<div class="coupon-shell"><h1 style="margin:0">我的优惠券</h1><p class="muted">结算时选择可用优惠券，平台满减可与优惠券叠加</p>
+{% if claimable_coupons %}<section class="coupon-section"><h2 style="font-size:18px">可领取</h2><div class="coupon-grid">{% for coupon in claimable_coupons %}<article class="coupon-card"><div class="coupon-value">{% if coupon.discount_type == 'fixed' %}<span><small>¥</small>{{ coupon.value|floatformat:0 }}</span>{% else %}<span>{{ coupon.value|floatformat:0 }}<small>% 付款比例</small></span>{% endif %}</div><div class="coupon-info"><h3>{{ coupon.name }}</h3><p>满 ¥{{ coupon.minimum_spend }} 可用</p><p>{{ coupon.valid_from|date:'Y-m-d' }} 至 {{ coupon.valid_until|date:'Y-m-d' }}</p><div class="coupon-action"><span class="status-pill">剩余 {% if coupon.remaining_quantity == None %}不限量{% else %}{{ coupon.remaining_quantity }}{% endif %}</span><form method="post" action="{% url 'shop:coupon_claim' coupon.id %}">{% csrf_token %}<button class="btn btn-sm btn-primary" type="submit">立即领取</button></form></div></div></article>{% endfor %}</div></section>{% endif %}
+<section class="coupon-section"><h2 style="font-size:18px">已领取</h2><div class="coupon-grid">{% for item in user_coupons %}<article class="coupon-card {{ item.status }}"><div class="coupon-value">{% if item.coupon.discount_type == 'fixed' %}<span><small>¥</small>{{ item.coupon.value|floatformat:0 }}</span>{% else %}<span>{{ item.coupon.value|floatformat:0 }}<small>% 折扣</small></span>{% endif %}</div><div class="coupon-info"><h3>{{ item.coupon.name }}</h3><p>满 ¥{{ item.coupon.minimum_spend }} 可用 · {{ item.coupon.description|default:'全场通用' }}</p><p>有效期至 {{ item.coupon.valid_until|date:'Y-m-d H:i' }}</p><div class="coupon-action"><span class="status-pill">{% if item.status == 'used' %}已使用{% elif item.status == 'expired' %}已过期{% else %}可使用{% endif %}</span>{% if item.status == 'available' %}<a class="btn btn-sm" href="{% url 'shop:category' %}">去使用</a>{% endif %}</div></div></article>{% empty %}<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">🎫</div><p>还没有优惠券</p></div>{% endfor %}</div></section>
+</div>{% endblock %}

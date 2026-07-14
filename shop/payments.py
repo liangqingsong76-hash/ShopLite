@@ -34,8 +34,11 @@ def parse_payment_payload(request):
 def verify_mock_signature(payload):
     secret = getattr(settings, "SHOPLITE_PAYMENT_SECRET", "")
     signature = payload.get("sign", "")
+    if not getattr(settings, "ENABLE_MOCK_PAYMENT", False):
+        return False
     if not secret:
-        return True
+        # 无密钥回调仅允许在显式开启的本地调试模式中使用。
+        return settings.DEBUG
 
     order_no = payload.get("out_trade_no", "")
     trade_no = payload.get("trade_no", "")
@@ -58,12 +61,22 @@ def handle_payment_notification(payload):
 
     order = Order.objects.get(order_no=order_no)
     _validate_amount(order, payload.get("total_amount"))
-    return mark_order_paid(order, payment_no=payload.get("trade_no", ""))
+    return mark_order_paid(
+        order,
+        payment_no=payload.get("trade_no", ""),
+        provider=Order.PAYMENT_MOCK,
+        raw_payload={
+            "out_trade_no": order_no,
+            "trade_no": payload.get("trade_no", ""),
+            "trade_status": trade_status,
+            "total_amount": str(payload.get("total_amount", "")),
+        },
+    )
 
 
 def _validate_amount(order, amount):
     if amount in (None, ""):
-        return
+        raise ValidationError("支付通知缺少金额")
     try:
         paid_amount = Decimal(str(amount))
     except (InvalidOperation, ValueError):

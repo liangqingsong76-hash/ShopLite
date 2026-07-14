@@ -328,6 +328,21 @@ input {
     cursor: not-allowed;
 }
 
+.social-grid button {
+    min-height: 42px;
+    border: 1px solid #e5e2dc;
+    border-radius: 10px;
+    background: #fff;
+    color: #57534e;
+    font: inherit;
+}
+
+.social-grid button:disabled {
+    cursor: not-allowed;
+    color: #a8a29e;
+    background: #fafaf9;
+}
+
 .options-row {
     display: flex;
     justify-content: space-between;

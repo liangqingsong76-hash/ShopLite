@@ -1,64 +1,67 @@
 services:
   db:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-shoplite}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-621261}
-    ports:
-      - "3306:3306"
+      MYSQL_USER: ${MYSQL_USER:-shoplite}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   web:
     build: .
-    command: gunicorn shoplite.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    restart: unless-stopped
+    env_file: .env
     environment:
       DJANGO_SETTINGS_MODULE: shoplite.settings
-      DB_HOST: db
-      DB_NAME: ${MYSQL_DATABASE:-shoplite}
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-621261}
+      DATABASE_URL: mysql://${MYSQL_USER:-shoplite}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-shoplite}
       REDIS_URL: redis://redis:6379/0
-      SHOPLITE_PAYMENT_SECRET: ${SHOPLITE_PAYMENT_SECRET:-}
+      USE_REDIS_CACHE: "True"
+      TRUST_PROXY_HEADERS: "True"
     volumes:
-      - .:/app
+      - static_data:/app/staticfiles
       - media_data:/app/media
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/', timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
 
   celery:
     build:
       context: .
       dockerfile: Dockerfile.celery
+    restart: unless-stopped
+    env_file: .env
     environment:
       DJANGO_SETTINGS_MODULE: shoplite.settings
-      DB_HOST: db
-      DB_NAME: ${MYSQL_DATABASE:-shoplite}
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-621261}
+      DATABASE_URL: mysql://${MYSQL_USER:-shoplite}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-shoplite}
       REDIS_URL: redis://redis:6379/0
-    volumes:
-      - .:/app
     depends_on:
-      db:
+      web:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -68,32 +71,33 @@ services:
       context: .
       dockerfile: Dockerfile.celery
     command: celery -A shoplite beat -l info
+    restart: unless-stopped
+    env_file: .env
     environment:
       DJANGO_SETTINGS_MODULE: shoplite.settings
-      DB_HOST: db
-      DB_NAME: ${MYSQL_DATABASE:-shoplite}
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-621261}
+      DATABASE_URL: mysql://${MYSQL_USER:-shoplite}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-shoplite}
       REDIS_URL: redis://redis:6379/0
-    volumes:
-      - .:/app
     depends_on:
-      db:
+      web:
         condition: service_healthy
       redis:
         condition: service_healthy
 
   nginx:
     image: nginx:1.27-alpine
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./static:/app/static:ro
+      - static_data:/app/static:ro
       - media_data:/app/media:ro
     depends_on:
-      - web
+      web:
+        condition: service_healthy
 
 volumes:
   mysql_data:
+  redis_data:
+  static_data:
   media_data:

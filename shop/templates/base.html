@@ -120,31 +120,16 @@
                 </div>
                 <div class="icon-link" id="notifyAction" onclick="toggleDropdown('notifyDropdown')">
                     <span style="font-size:16px;">🔔</span>
-                    <span class="badge">3</span>
+                    {% if unread_notifications %}<span class="badge">{{ unread_notifications }}</span>{% endif %}
                     <div class="action-dropdown" id="notifyDropdown">
                         <div class="dropdown-header">消息通知</div>
                         <div class="dropdown-content">
-                            <a href="{% url 'shop:notifications' %}" class="dropdown-item">
-                                <span class="dropdown-item-icon">📦</span>
-                                <span class="dropdown-item-info">
-                                    <span class="dropdown-item-title">订单已发货</span>
-                                    <span class="dropdown-item-desc">您的订单已发出，预计3天送达</span>
-                                </span>
+                            {% for notice in recent_notifications %}
+                            <a href="{{ notice.safe_link }}" class="dropdown-item">
+                                <span class="dropdown-item-icon">{% if notice.category == 'order' %}📦{% elif notice.category == 'coupon' %}🎫{% else %}📢{% endif %}</span>
+                                <span class="dropdown-item-info"><span class="dropdown-item-title">{{ notice.title }}</span><span class="dropdown-item-desc">{{ notice.content|truncatechars:30 }}</span></span>
                             </a>
-                            <a href="{% url 'shop:notifications' %}" class="dropdown-item">
-                                <span class="dropdown-item-icon">💰</span>
-                                <span class="dropdown-item-info">
-                                    <span class="dropdown-item-title">商品降价提醒</span>
-                                    <span class="dropdown-item-desc">您关注的商品降价了</span>
-                                </span>
-                            </a>
-                            <a href="{% url 'shop:notifications' %}" class="dropdown-item">
-                                <span class="dropdown-item-icon">🎫</span>
-                                <span class="dropdown-item-info">
-                                    <span class="dropdown-item-title">优惠券到账</span>
-                                    <span class="dropdown-item-desc">新用户专属优惠券已发放</span>
-                                </span>
-                            </a>
+                            {% empty %}<div class="dropdown-item"><span class="dropdown-item-icon">🔔</span><span class="dropdown-item-info"><span class="dropdown-item-title">暂无新消息</span><span class="dropdown-item-desc">订单与优惠提醒会显示在这里</span></span></div>{% endfor %}
                         </div>
                         <div class="dropdown-footer">
                             <a href="{% url 'shop:notifications' %}">查看全部消息 ›</a>

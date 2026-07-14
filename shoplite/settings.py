@@ -28,13 +28,14 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# TODO:配置Env
+# 统一从环境变量或 .env 读取配置；未安装 django-environ 时使用标准库回退。
 if environ:
     # 注册环境变量的类型和默认值
     env = environ.Env(
         DEBUG=(bool, True),
         ALLOWED_HOSTS=(list, []),
         SHOPLITE_PAYMENT_SECRET=(str, ""),
+        ENABLE_MOCK_PAYMENT=(bool, False),
         SMS_PROVIDER=(str, "console"),
         TENCENT_SMS_SECRET_ID=(str, ""),
         TENCENT_SMS_SECRET_KEY=(str, ""),
@@ -42,8 +43,11 @@ if environ:
         TENCENT_SMS_SIGN_NAME=(str, ""),
         TENCENT_SMS_TEMPLATE_ID=(str, ""),
         TENCENT_SMS_REGION=(str, "ap-guangzhou"),
-        WECHAT_LOGIN_MODE=(str, "mock"),
+        WECHAT_LOGIN_MODE=(str, "disabled"),
         USE_REDIS_CACHE=(bool, False),
+        PRODUCTION=(bool, False),
+        SECURE_SSL_REDIRECT=(bool, True),
+        TRUST_PROXY_HEADERS=(bool, False),
     )
     # 读取项目根目录下的 .env 文件，把里面的键值对加载到环境变量中
     environ.Env.read_env(BASE_DIR / ".env")
@@ -76,7 +80,10 @@ else:
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Django 的密钥，用于签名 session、CSRF等。生产环境不能用默认值，随机生成密钥python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-SECRET_KEY = env_value("SECRET_KEY", default="django-insecure-r93p1*&&**ar47x69$1(g*+rypq*++f*jj8lar!8j(2u9f%xfr")
+SECRET_KEY = env_value(
+    "SECRET_KEY",
+    default="shoplite-local-development-only-secret-key-change-before-deployment-2026",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # 调试模式。开发环境可以是True，生产环境必须是False
@@ -84,6 +91,13 @@ DEBUG = env("DEBUG") if environ else _env_bool("DEBUG", True)
 
 # 允许访问这个 Django 服务的域名或 IP，如ALLOWED_HOSTS = ['myshop.com', 'www.myshop.com', '47.98.123.45']
 ALLOWED_HOSTS = env("ALLOWED_HOSTS") if environ else _env_list("ALLOWED_HOSTS")
+PRODUCTION = env("PRODUCTION") if environ else _env_bool("PRODUCTION", False)
+TRUST_PROXY_HEADERS = env("TRUST_PROXY_HEADERS") if environ else _env_bool("TRUST_PROXY_HEADERS", False)
+CSRF_TRUSTED_ORIGINS = (
+    env.list("CSRF_TRUSTED_ORIGINS", default=[])
+    if environ
+    else _env_list("CSRF_TRUSTED_ORIGINS")
+)
 
 
 # Application definition
@@ -184,18 +198,14 @@ if environ:
     DATABASES = {
         "default": env.db(
             "DATABASE_URL",
-            default="mysql://root:621261@127.0.0.1:3306/shoplite",
+            default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         )
     }
 else:
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": os.environ.get("DB_NAME", "shoplite"),
-            "USER": os.environ.get("DB_USER", "root"),
-            "PASSWORD": os.environ.get("DB_PASSWORD", "621261"),
-            "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
-            "PORT": os.environ.get("DB_PORT", "3306"),
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
 
@@ -253,7 +263,7 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": (
             "whitenoise.storage.CompressedManifestStaticFilesStorage"
-            if importlib.util.find_spec("whitenoise")
+            if PRODUCTION and importlib.util.find_spec("whitenoise")
             else "django.contrib.staticfiles.storage.StaticFilesStorage"
         ),
     },
@@ -281,9 +291,32 @@ ACCOUNT_EMAIL_VERIFICATION = "none"
 # 所有模型自动生成的主键 id 字段，都用 大整数类型（BIGINT），这样数据量再大也不用担心主键不够用
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# 生产安全开关：反向代理部署时启用 HTTPS 重定向、安全 Cookie、HSTS 与代理协议头。
+X_FRAME_OPTIONS = "DENY"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+if PRODUCTION:
+    if not os.environ.get("SECRET_KEY"):
+        raise RuntimeError("生产环境必须设置 SECRET_KEY")
+    if not ALLOWED_HOSTS:
+        raise RuntimeError("生产环境必须设置 ALLOWED_HOSTS")
+    DEBUG = False
+    SECURE_SSL_REDIRECT = env("SECURE_SSL_REDIRECT") if environ else _env_bool("SECURE_SSL_REDIRECT", True)
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_SAMESITE = "Lax"
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_REDIRECT_EXEMPT = [r"^health/$"]
+
 
 # 从.env或系统环境变量里读取支付密钥，本地开发时默认为空（不启用真实支付），生产环境由运维人员设置真实密钥，保证敏感信息不写死在代码里，SHOPLITE_PAYMENT_SECRET 是项目的支付密钥
 SHOPLITE_PAYMENT_SECRET = env_value("SHOPLITE_PAYMENT_SECRET", default="")
+ENABLE_MOCK_PAYMENT = env("ENABLE_MOCK_PAYMENT") if environ else _env_bool("ENABLE_MOCK_PAYMENT", False)
 
 
 # 这一整段都是跟短信发送和微信登录相关的配置，同样是从环境变量或.env文件里读取
@@ -305,7 +338,13 @@ TENCENT_SMS_SDK_APP_ID = env_value("TENCENT_SMS_SDK_APP_ID", default="")
 TENCENT_SMS_SIGN_NAME = env_value("TENCENT_SMS_SIGN_NAME", default="")
 TENCENT_SMS_TEMPLATE_ID = env_value("TENCENT_SMS_TEMPLATE_ID", default="")
 TENCENT_SMS_REGION = env_value("TENCENT_SMS_REGION", default="ap-guangzhou")
-WECHAT_LOGIN_MODE = env_value("WECHAT_LOGIN_MODE", default="mock")
+WECHAT_LOGIN_MODE = env_value("WECHAT_LOGIN_MODE", default="disabled")
+
+if PRODUCTION:
+    if SMS_PROVIDER == "console":
+        raise RuntimeError("生产环境必须配置真实短信服务，不能使用 console")
+    if WECHAT_LOGIN_MODE == "mock":
+        raise RuntimeError("生产环境禁止启用模拟微信登录")
 
 """
 变量	              作用	            本地开发	                        生产环境
@@ -388,7 +427,7 @@ SIMPLEUI_LOGO = ''              # 左上角 logo 不设置图片
 SIMPLEUI_CONFIG = {
     "system_keep": True,    # 保留 Django 自带的系统管理（用户、组等）
     # 这一行决定了左侧导航栏从上到下显示哪些菜单分类，以及它们的前后顺序。把"系统管理"放在最上面，改一下顺序就行
-    "menu_display": ["商品中心", "交易中心", "用户服务", "内容评价", "系统管理"],
+    "menu_display": ["商品中心", "交易中心", "营销中心", "用户服务", "内容评价", "系统管理"],
     "dynamic": False,       # 菜单不会自动更新
     # 每个菜单的具体内容
     "menus": [
@@ -408,6 +447,17 @@ SIMPLEUI_CONFIG = {
                 {"name": "订单管理", "icon": "fas fa-file-invoice", "url": "shop/order/"},
                 {"name": "订单明细", "icon": "fas fa-list", "url": "shop/orderitem/"},
                 {"name": "购物车项", "icon": "fas fa-shopping-cart", "url": "shop/cartitem/"},
+                {"name": "支付流水", "icon": "fas fa-credit-card", "url": "shop/paymenttransaction/"},
+                {"name": "退款售后", "icon": "fas fa-undo", "url": "shop/refundrequest/"},
+            ],
+        },
+        {
+            "name": "营销中心",
+            "icon": "fas fa-ticket-alt",
+            "models": [
+                {"name": "优惠券", "icon": "fas fa-tags", "url": "shop/coupon/"},
+                {"name": "用户优惠券", "icon": "fas fa-ticket-alt", "url": "shop/usercoupon/"},
+                {"name": "站内通知", "icon": "fas fa-bell", "url": "shop/notification/"},
             ],
         },
         {
@@ -416,6 +466,7 @@ SIMPLEUI_CONFIG = {
             "models": [
                 {"name": "收货地址", "icon": "fas fa-map-marker-alt", "url": "shop/address/"},
                 {"name": "商品收藏", "icon": "fas fa-heart", "url": "shop/favorite/"},
+                {"name": "浏览记录", "icon": "fas fa-history", "url": "shop/browsinghistory/"},
             ],
         },
         {
@@ -438,4 +489,3 @@ SIMPLEUI_CONFIG = {
         },
     ],
 }
-

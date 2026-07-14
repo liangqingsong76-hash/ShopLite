@@ -67,10 +67,10 @@
                 </div>
                 <div class="addr-actions">
                     {% if not addr.is_default %}
-                        <a href="{% url 'shop:address_set_default' addr.id %}">设为默认</a>
+                        <form method="post" action="{% url 'shop:address_set_default' addr.id %}">{% csrf_token %}<button class="link-button" type="submit">设为默认</button></form>
                     {% endif %}
                     <a href="{% url 'shop:address_edit' addr.id %}">编辑</a>
-                    <a class="danger" href="{% url 'shop:address_delete' addr.id %}" onclick="return confirm('确定删除此地址？')">删除</a>
+                    <form method="post" action="{% url 'shop:address_delete' addr.id %}" onsubmit="return confirm('确定删除此地址？')">{% csrf_token %}<button class="link-button danger" type="submit">删除</button></form>
                 </div>
             </div>
         {% endfor %}

@@ -7,13 +7,29 @@ import re
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import F
-from django.utils.crypto import get_random_string
+from django.db.models.functions import Greatest
+from django.utils.crypto import constant_time_compare, get_random_string, salted_hmac
 from django.utils import timezone
 
-from .models import Address, CartItem, Order, OrderItem, PhoneVerificationCode, Product, UserProfile
+from .models import (
+    Address,
+    CartItem,
+    Coupon,
+    Notification,
+    Order,
+    OrderItem,
+    PaymentTransaction,
+    PhoneVerificationCode,
+    Product,
+    RefundRequest,
+    UserCoupon,
+    UserProfile,
+)
 
 FREE_SHIPPING = Decimal("0.00")
 DISCOUNT_THRESHOLD = Decimal("299.00")
@@ -22,6 +38,7 @@ MIN_QUANTITY = 1
 MAX_QUANTITY = 99
 PHONE_CODE_TTL_MINUTES = 5
 PHONE_CODE_RESEND_SECONDS = 60
+PHONE_CODE_MAX_ATTEMPTS = 5
 PHONE_PATTERN = re.compile(r"^1[3-9]\d{9}$")
 _random = SystemRandom()
 
@@ -30,6 +47,8 @@ _random = SystemRandom()
 class CartTotals:
     subtotal: Decimal
     discount: Decimal
+    promotion_discount: Decimal
+    coupon_discount: Decimal
     shipping_fee: Decimal
     payable: Decimal
 
@@ -62,15 +81,24 @@ def normalize_phone(phone):
 
 def issue_phone_verification_code(phone, *, purpose=PhoneVerificationCode.PURPOSE_LOGIN):
     phone = normalize_phone(phone)
-    _assert_phone_code_can_send(phone, purpose)
-    code = f"{_random.randint(0, 999999):06d}"
-    verification = PhoneVerificationCode.objects.create(
-        phone=phone,
-        code=code,
-        purpose=purpose,
-        expires_at=timezone.now() + timezone.timedelta(minutes=PHONE_CODE_TTL_MINUTES),
-        sent_to_backend=send_phone_verification_code(phone, code, purpose),
-    )
+    rate_key = f"sms-send:{purpose}:{phone}"
+    if not cache.add(rate_key, "1", timeout=PHONE_CODE_RESEND_SECONDS):
+        raise ValidationError("验证码发送太频繁，请稍后再试")
+    try:
+        _assert_phone_code_can_send(phone, purpose)
+        raw_code = f"{_random.randint(0, 999999):06d}"
+        verification = PhoneVerificationCode.objects.create(
+            phone=phone,
+            code=_phone_code_digest(phone, purpose, raw_code),
+            purpose=purpose,
+            expires_at=timezone.now() + timezone.timedelta(minutes=PHONE_CODE_TTL_MINUTES),
+            sent_to_backend=send_phone_verification_code(phone, raw_code, purpose),
+        )
+    except Exception:
+        cache.delete(rate_key)
+        raise
+    # 仅供当前进程的控制台开发与自动化测试使用，不会写入数据库。
+    verification._raw_code = raw_code
     return verification
 
 
@@ -82,6 +110,8 @@ def validate_phone_code_request(phone, purpose, *, user=None):
         raise ValidationError("该手机号已注册，请直接登录")
     if purpose == PhoneVerificationCode.PURPOSE_LOGIN and not existing_user:
         raise ValidationError("该手机号未注册，请先注册")
+    if purpose == PhoneVerificationCode.PURPOSE_RESET and not existing_user:
+        raise ValidationError("该手机号未注册")
     if purpose == PhoneVerificationCode.PURPOSE_BIND:
         qs = UserProfile.objects.filter(phone=phone)
         if user and getattr(user, "is_authenticated", False):
@@ -153,19 +183,51 @@ def verify_phone_code(phone, code, *, purpose=PhoneVerificationCode.PURPOSE_LOGI
     if not re.fullmatch(r"\d{6}", code):
         raise ValidationError("请输入 6 位短信验证码")
 
-    verification = (
-        PhoneVerificationCode.objects.filter(phone=phone, purpose=purpose, used_at__isnull=True)
-        .order_by("-created_at")
-        .first()
-    )
-    if not verification or verification.code != code:
-        raise ValidationError("短信验证码不正确")
-    if verification.is_expired:
-        raise ValidationError("短信验证码已过期")
-
-    verification.used_at = timezone.now()
-    verification.save(update_fields=["used_at"])
+    error = None
+    verification = None
+    with transaction.atomic():
+        verification = (
+            PhoneVerificationCode.objects.select_for_update()
+            .filter(phone=phone, purpose=purpose, used_at__isnull=True)
+            .order_by("-created_at")
+            .first()
+        )
+        if not verification:
+            error = "短信验证码不正确或已失效"
+        elif verification.is_expired:
+            verification.used_at = timezone.now()
+            verification.save(update_fields=["used_at"])
+            error = "短信验证码已过期"
+        elif verification.attempt_count >= PHONE_CODE_MAX_ATTEMPTS:
+            verification.used_at = timezone.now()
+            verification.save(update_fields=["used_at"])
+            error = "验证码尝试次数过多，请重新获取"
+        elif not constant_time_compare(
+            verification.code,
+            _phone_code_digest(phone, purpose, code),
+        ):
+            verification.attempt_count += 1
+            verification.last_attempt_at = timezone.now()
+            fields = ["attempt_count", "last_attempt_at"]
+            if verification.attempt_count >= PHONE_CODE_MAX_ATTEMPTS:
+                verification.used_at = timezone.now()
+                fields.append("used_at")
+                error = "验证码尝试次数过多，请重新获取"
+            else:
+                error = "短信验证码不正确"
+            verification.save(update_fields=fields)
+        else:
+            verification.used_at = timezone.now()
+            verification.last_attempt_at = verification.used_at
+            verification.save(update_fields=["used_at", "last_attempt_at"])
+    if error:
+        raise ValidationError(error)
     return verification
+
+
+def _phone_code_digest(phone, purpose, code):
+    value = f"{phone}|{purpose}|{code}"
+    return salted_hmac("shoplite.phone-verification", value).hexdigest()
 
 
 def get_user_by_phone(phone):
@@ -182,10 +244,28 @@ def register_user_by_phone(phone, *, password=None):
     if UserProfile.objects.filter(phone=phone).exists():
         raise ValidationError("该手机号已注册，请直接登录")
 
+    if not password:
+        raise ValidationError("请设置登录密码")
     username = _build_phone_username(phone)
-    user = User.objects.create_user(username=username, password=password or get_random_string(32))
-    UserProfile.objects.create(user=user, phone=phone, phone_verified_at=timezone.now())
+    user = User(username=username)
+    validate_password(password, user=user)
+    user.set_password(password)
+    try:
+        user.save()
+        UserProfile.objects.create(user=user, phone=phone, phone_verified_at=timezone.now())
+    except IntegrityError as exc:
+        raise ValidationError("该手机号已注册，请直接登录") from exc
     return user
+
+
+def register_user_with_phone_code(phone, code, password):
+    phone = normalize_phone(phone)
+    if UserProfile.objects.filter(phone=phone).exists():
+        raise ValidationError("该手机号已注册，请直接登录")
+    candidate = User(username=_build_phone_username(phone))
+    validate_password(password, user=candidate)
+    verify_phone_code(phone, code, purpose=PhoneVerificationCode.PURPOSE_REGISTER)
+    return register_user_by_phone(phone, password=password)
 
 
 def authenticate_by_login_identifier(request, identifier, password):
@@ -200,6 +280,10 @@ def authenticate_by_login_identifier(request, identifier, password):
         user = None
     if user:
         username = user.username
+    elif "@" in identifier:
+        email_users = User.objects.filter(email__iexact=identifier, is_active=True)
+        if email_users.count() == 1:
+            username = email_users.first().username
 
     user = authenticate(request, username=username, password=password)
     if not user:
@@ -253,6 +337,23 @@ def bind_phone_to_user(user, phone):
     return profile
 
 
+def bind_phone_with_code(user, phone, code):
+    validate_phone_code_request(phone, PhoneVerificationCode.PURPOSE_BIND, user=user)
+    verify_phone_code(phone, code, purpose=PhoneVerificationCode.PURPOSE_BIND)
+    return bind_phone_to_user(user, phone)
+
+
+def reset_password_with_phone_code(phone, code, new_password):
+    user = get_user_by_phone(phone)
+    if not user:
+        raise ValidationError("该手机号未注册")
+    validate_password(new_password, user=user)
+    verify_phone_code(phone, code, purpose=PhoneVerificationCode.PURPOSE_RESET)
+    user.set_password(new_password)
+    user.save(update_fields=["password"])
+    return user
+
+
 def _assert_phone_code_can_send(phone, purpose):
     latest = PhoneVerificationCode.objects.filter(phone=phone, purpose=purpose).order_by("-created_at").first()
     if not latest:
@@ -283,16 +384,57 @@ def _build_social_username(prefix):
     return username
 
 
-def calculate_cart_totals(cart_items):
+def calculate_cart_totals(cart_items, *, user_coupon=None):
     subtotal = sum((item.subtotal for item in cart_items), Decimal("0.00"))
-    discount = DISCOUNT_AMOUNT if subtotal >= DISCOUNT_THRESHOLD else Decimal("0.00")
+    promotion_discount = DISCOUNT_AMOUNT if subtotal >= DISCOUNT_THRESHOLD else Decimal("0.00")
+    coupon_discount = calculate_coupon_discount(user_coupon, subtotal)
+    discount = min(subtotal, promotion_discount + coupon_discount)
     payable = subtotal - discount + FREE_SHIPPING
     return CartTotals(
         subtotal=subtotal,
         discount=discount,
+        promotion_discount=promotion_discount,
+        coupon_discount=coupon_discount,
         shipping_fee=FREE_SHIPPING,
         payable=payable,
     )
+
+
+def calculate_coupon_discount(user_coupon, subtotal):
+    if not user_coupon:
+        return Decimal("0.00")
+    if user_coupon.used_at or user_coupon.coupon.valid_until <= timezone.now():
+        raise ValidationError("优惠券已使用或已过期")
+    coupon = user_coupon.coupon
+    if not coupon.is_active or coupon.valid_from > timezone.now():
+        raise ValidationError("优惠券当前不可用")
+    if subtotal < coupon.minimum_spend:
+        raise ValidationError(f"该优惠券需满 ¥{coupon.minimum_spend} 使用")
+    if coupon.discount_type == Coupon.TYPE_PERCENT:
+        value = max(Decimal("0"), min(coupon.value, Decimal("100")))
+        # value=90 表示九折，即减免原价的 10%。
+        return (subtotal * (Decimal("100") - value) / Decimal("100")).quantize(Decimal("0.01"))
+    return min(subtotal, max(Decimal("0"), coupon.value))
+
+
+@transaction.atomic
+def claim_coupon(user, coupon_id):
+    coupon = Coupon.objects.select_for_update().get(id=coupon_id)
+    existing = UserCoupon.objects.filter(user=user, coupon=coupon).first()
+    if existing:
+        return existing, False
+    if not coupon.is_available:
+        raise ValidationError("优惠券已领完或不在有效期")
+    user_coupon = UserCoupon.objects.create(user=user, coupon=coupon)
+    Coupon.objects.filter(id=coupon.id).update(claimed_count=F("claimed_count") + 1)
+    Notification.objects.create(
+        user=user,
+        category=Notification.TYPE_COUPON,
+        title="优惠券领取成功",
+        content=f"{coupon.name} 已放入您的账户，请在有效期内使用。",
+        link="/coupons/",
+    )
+    return user_coupon, True
 
 
 def build_address_snapshot(address):
@@ -301,18 +443,25 @@ def build_address_snapshot(address):
     return f"{address.receiver} {address.phone} {address.province}{address.city}{address.district} {address.detail}".strip()
 
 
+@transaction.atomic
 def add_product_to_cart(user, product_id, *, quantity=1, color="", specs=""):
     quantity = parse_quantity(quantity)
-    product = Product.objects.get(id=product_id, is_active=True)
+    product = Product.objects.select_for_update().get(id=product_id, is_active=True)
+    if product.stock < 1:
+        raise ValidationError("商品库存不足")
+    if quantity > product.stock:
+        raise ValidationError(f"库存仅剩 {product.stock} 件")
     variant = _build_variant_text(color, specs)
 
     item, created = CartItem.objects.get_or_create(
         user=user,
         product=product,
         color=variant,
-        defaults={"quantity": quantity},
+        defaults={"quantity": min(quantity, product.stock)},
     )
     if not created:
+        if item.quantity + quantity > product.stock:
+            raise ValidationError(f"购物车已有 {item.quantity} 件，库存仅剩 {product.stock} 件")
         item.quantity = min(item.quantity + quantity, MAX_QUANTITY)
         item.save(update_fields=["quantity", "updated_at"])
     return item
@@ -327,7 +476,7 @@ def _build_variant_text(color, specs):
 
 
 @transaction.atomic
-def create_order_from_cart(user, *, address_id=None):
+def create_order_from_cart(user, *, address_id=None, user_coupon_id=None, payment_method=Order.PAYMENT_MOCK):
     cart_items = list(
         CartItem.objects.select_related("product")
         .select_for_update()
@@ -337,11 +486,32 @@ def create_order_from_cart(user, *, address_id=None):
     if not cart_items:
         raise ValidationError("购物车为空")
 
-    address = None
-    if address_id:
-        address = Address.objects.filter(id=address_id, user=user).first()
+    address = Address.objects.filter(id=address_id, user=user).first() if address_id else None
+    if not address:
+        raise ValidationError("请选择有效的收货地址")
 
-    totals = calculate_cart_totals(cart_items)
+    for item in cart_items:
+        product = Product.objects.select_for_update().get(id=item.product_id)
+        if not product.is_active or product.stock < item.quantity:
+            raise ValidationError(f"商品库存不足或已下架：{product.name}")
+
+    if payment_method not in dict(Order.PAYMENT_CHOICES):
+        raise ValidationError("支付方式无效")
+    if payment_method != Order.PAYMENT_MOCK:
+        raise ValidationError("该支付方式暂未开放")
+
+    user_coupon = None
+    if user_coupon_id:
+        user_coupon = (
+            UserCoupon.objects.select_for_update()
+            .select_related("coupon")
+            .filter(id=user_coupon_id, user=user)
+            .first()
+        )
+        if not user_coupon:
+            raise ValidationError("优惠券不存在")
+
+    totals = calculate_cart_totals(cart_items, user_coupon=user_coupon)
     order = Order.objects.create(
         user=user,
         order_no=generate_order_no(),
@@ -350,11 +520,23 @@ def create_order_from_cart(user, *, address_id=None):
         shipping_fee=totals.shipping_fee,
         pay_amount=totals.payable,
         address_text=build_address_snapshot(address),
+        coupon=user_coupon,
+        payment_method=payment_method,
         status=Order.STATUS_PENDING,
     )
 
     OrderItem.objects.bulk_create([_build_order_item(order, item) for item in cart_items])
+    if user_coupon:
+        user_coupon.used_at = timezone.now()
+        user_coupon.save(update_fields=["used_at"])
     CartItem.objects.filter(id__in=[item.id for item in cart_items]).delete()
+    Notification.objects.create(
+        user=user,
+        category=Notification.TYPE_ORDER,
+        title="订单创建成功",
+        content=f"订单 {order.order_no} 已创建，请尽快完成支付。",
+        link=f"/order/{order.id}/",
+    )
     return order
 
 
@@ -376,14 +558,16 @@ def generate_order_no():
 
 
 @transaction.atomic
-def mark_order_paid(order, *, paid_at=None, payment_no=""):
+def mark_order_paid(order, *, paid_at=None, payment_no="", provider=Order.PAYMENT_MOCK, raw_payload=None):
+    if provider not in dict(Order.PAYMENT_CHOICES):
+        raise ValidationError("支付渠道无效")
     locked_order = (
         Order.objects.select_for_update()
         .prefetch_related("items__product")
         .get(id=order.id)
     )
 
-    if locked_order.status == Order.STATUS_PAID:
+    if locked_order.status in {Order.STATUS_PAID, Order.STATUS_SHIPPED, Order.STATUS_COMPLETED}:
         return locked_order, False
     if locked_order.status != Order.STATUS_PENDING:
         raise ValidationError("只有待付款订单可以确认支付")
@@ -401,15 +585,149 @@ def mark_order_paid(order, *, paid_at=None, payment_no=""):
         if updated != 1:
             raise ValidationError(f"商品库存不足：{item.product_name}")
 
+    payment_no = str(payment_no or generate_payment_no(provider))[:64]
+    existing_payment = PaymentTransaction.objects.filter(transaction_no=payment_no).first()
+    if existing_payment and existing_payment.order_id != locked_order.id:
+        raise ValidationError("支付流水号已被其他订单使用")
+
     locked_order.status = Order.STATUS_PAID
     locked_order.paid_at = paid_at or timezone.now()
-    locked_order.save(update_fields=["status", "paid_at"])
+    locked_order.payment_method = provider
+    locked_order.payment_no = payment_no
+    locked_order.save(update_fields=["status", "paid_at", "payment_method", "payment_no"])
+    PaymentTransaction.objects.update_or_create(
+        transaction_no=payment_no,
+        defaults={
+            "order": locked_order,
+            "provider": provider,
+            "amount": locked_order.pay_amount,
+            "status": PaymentTransaction.STATUS_SUCCESS,
+            "raw_payload": raw_payload or {},
+            "completed_at": locked_order.paid_at,
+        },
+    )
+    Notification.objects.create(
+        user=locked_order.user,
+        category=Notification.TYPE_ORDER,
+        title="支付成功",
+        content=f"订单 {locked_order.order_no} 支付成功，商家将尽快发货。",
+        link=f"/order/{locked_order.id}/",
+    )
     return locked_order, True
 
 
+def generate_payment_no(provider):
+    return f"{provider.upper()}{timezone.now():%Y%m%d%H%M%S}{uuid.uuid4().hex[:10].upper()}"
+
+
+@transaction.atomic
 def cancel_pending_order(order):
-    if order.status != Order.STATUS_PENDING:
-        return order, False
-    order.status = Order.STATUS_CANCELLED
-    order.save(update_fields=["status"])
-    return order, True
+    locked_order = Order.objects.select_for_update().select_related("coupon").get(id=order.id)
+    if locked_order.status != Order.STATUS_PENDING:
+        return locked_order, False
+    locked_order.status = Order.STATUS_CANCELLED
+    locked_order.save(update_fields=["status"])
+    if locked_order.coupon_id and locked_order.coupon.used_at:
+        locked_order.coupon.used_at = None
+        locked_order.coupon.save(update_fields=["used_at"])
+    Notification.objects.create(
+        user=locked_order.user,
+        category=Notification.TYPE_ORDER,
+        title="订单已取消",
+        content=f"订单 {locked_order.order_no} 已取消。",
+        link=f"/order/{locked_order.id}/",
+    )
+    return locked_order, True
+
+
+@transaction.atomic
+def mark_order_shipped(order):
+    locked_order = Order.objects.select_for_update().get(id=order.id)
+    if locked_order.status != Order.STATUS_PAID:
+        return locked_order, False
+    locked_order.status = Order.STATUS_SHIPPED
+    locked_order.save(update_fields=["status"])
+    Notification.objects.create(
+        user=locked_order.user,
+        category=Notification.TYPE_ORDER,
+        title="订单已发货",
+        content=f"订单 {locked_order.order_no} 已发货，请留意物流信息。",
+        link=f"/order/{locked_order.id}/",
+    )
+    return locked_order, True
+
+
+@transaction.atomic
+def complete_order(order):
+    locked_order = Order.objects.select_for_update().get(id=order.id)
+    if locked_order.status != Order.STATUS_SHIPPED:
+        return locked_order, False
+    locked_order.status = Order.STATUS_COMPLETED
+    locked_order.save(update_fields=["status"])
+    Notification.objects.create(
+        user=locked_order.user,
+        category=Notification.TYPE_ORDER,
+        title="订单已完成",
+        content=f"订单 {locked_order.order_no} 已确认收货。",
+        link=f"/order/{locked_order.id}/",
+    )
+    return locked_order, True
+
+
+@transaction.atomic
+def create_refund_request(user, order, *, reason, description=""):
+    locked_order = Order.objects.select_for_update().get(id=order.id, user=user)
+    if locked_order.status not in {Order.STATUS_PAID, Order.STATUS_SHIPPED, Order.STATUS_COMPLETED}:
+        raise ValidationError("当前订单状态不能申请退款")
+    reason = str(reason or "").strip()
+    if not reason:
+        raise ValidationError("请选择退款原因")
+    refund, created = RefundRequest.objects.get_or_create(
+        order=locked_order,
+        defaults={
+            "user": user,
+            "refund_no": f"AS{timezone.now():%Y%m%d%H%M%S}{uuid.uuid4().hex[:6].upper()}",
+            "reason": reason[:100],
+            "description": str(description or "").strip(),
+            "amount": locked_order.pay_amount,
+            "order_status_before": locked_order.status,
+        },
+    )
+    if not created:
+        raise ValidationError("该订单已提交过售后申请")
+    locked_order.status = Order.STATUS_REFUND
+    locked_order.save(update_fields=["status"])
+    Notification.objects.create(
+        user=user,
+        category=Notification.TYPE_ORDER,
+        title="售后申请已提交",
+        content=f"订单 {locked_order.order_no} 的售后申请正在审核。",
+        link="/refunds/",
+    )
+    return refund
+
+
+@transaction.atomic
+def complete_refund(refund):
+    locked_refund = RefundRequest.objects.select_for_update().select_related("order").get(id=refund.id)
+    if locked_refund.status == RefundRequest.STATUS_COMPLETED:
+        return locked_refund, False
+    if locked_refund.status not in {RefundRequest.STATUS_PENDING, RefundRequest.STATUS_APPROVED}:
+        raise ValidationError("当前售后状态不能完成退款")
+    for item in locked_refund.order.items.select_related("product"):
+        if item.product_id:
+            Product.objects.filter(id=item.product_id).update(
+                stock=F("stock") + item.quantity,
+                sales=Greatest(F("sales") - item.quantity, 0),
+            )
+    locked_refund.status = RefundRequest.STATUS_COMPLETED
+    locked_refund.completed_at = timezone.now()
+    locked_refund.save(update_fields=["status", "completed_at", "updated_at"])
+    Notification.objects.create(
+        user=locked_refund.user,
+        category=Notification.TYPE_ORDER,
+        title="退款已完成",
+        content=f"售后单 {locked_refund.refund_no} 已完成退款。",
+        link="/refunds/",
+    )
+    return locked_refund, True

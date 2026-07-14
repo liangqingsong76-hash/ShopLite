@@ -139,27 +139,34 @@
 
         <div class="check-card">
             <h3>💳 支付方式</h3>
-            <div class="payment-option">
-                <span style="font-size:22px;">💚</span>
-                <span>微信支付</span>
-            </div>
+            {% if mock_payment_enabled %}<label class="payment-option"><input type="radio" name="payment_method" value="mock" form="orderForm" checked><span style="font-size:22px;">🧪</span><span><strong>模拟支付</strong><br><small class="muted">仅用于当前项目测试</small></span></label>{% else %}<div class="payment-option" style="opacity:.65"><span>⏳</span><span>在线支付暂未开放，可先提交待付款订单</span></div><input type="hidden" name="payment_method" value="mock" form="orderForm">{% endif %}
+            <div class="payment-option" style="opacity:.55"><span style="font-size:22px;">💙</span><span>支付宝 · 暂未开放</span></div>
+            <div class="payment-option" style="opacity:.55"><span style="font-size:22px;">💚</span><span>微信支付 · 暂未开放</span></div>
+        </div>
+        <div class="check-card">
+            <h3>🎫 优惠券</h3>
+            <select class="form-input" name="user_coupon_id" form="orderForm">
+                <option value="">不使用优惠券</option>
+                {% for item in usable_coupons %}<option value="{{ item.id }}">{{ item.coupon.name }}（满 {{ item.coupon.minimum_spend }}，优惠 {{ item.coupon.value }}）</option>{% endfor %}
+            </select>
+            <p class="muted" style="font-size:12px;margin:8px 0 0">提交后将按所选优惠券重新计算，失效或不满足门槛时会提示。</p>
         </div>
     </div>
 
     <div class="summary-card">
         <h2>订单金额</h2>
         <div class="summary-row"><span class="label">商品金额</span><strong>¥{{ subtotal }}</strong></div>
-        <div class="summary-row"><span class="label">优惠券</span><strong class="price-red">-¥{{ discount }}</strong></div>
+        <div class="summary-row"><span class="label">平台满减</span><strong class="price-red">-¥{{ discount }}</strong></div>
         <div class="summary-row"><span class="label">运费</span><strong style="color:var(--success);">免运费</strong></div>
         <div class="summary-divider"></div>
         <div class="summary-total"><span>合计</span><span class="price-red">¥{{ total }}</span></div>
         <div class="summary-divider"></div>
         <div style="padding:6px 12px;margin:12px 0;background:#fafaf8;border-radius:var(--radius-sm);font-size:13px;color:var(--muted);text-align:center;">
-            已享满减优惠 ¥30
+            {% if discount %}已享平台满减 ¥{{ discount }}{% else %}满 ¥299 可减 ¥30{% endif %}
         </div>
         <form id="orderForm" method="post" action="{% url 'shop:place_order' %}">
             {% csrf_token %}
-            <button class="btn btn-primary btn-lg" type="submit" style="width:100%;">提交订单</button>
+            <button class="btn btn-primary btn-lg" type="submit" style="width:100%;" {% if not addresses %}disabled{% endif %}>提交订单</button>
         </form>
         <p class="muted" style="text-align:center;margin-top:12px;font-size:13px;">✓ 安全支付 · 100% 正品保障</p>
     </div>

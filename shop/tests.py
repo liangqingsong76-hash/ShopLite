@@ -4,10 +4,10 @@ import json
 from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from .models import CartItem, Category, Order, PhoneVerificationCode, Product, UserProfile
+from .models import Address, CartItem, Category, Coupon, Order, PhoneVerificationCode, Product, UserProfile
 from .payments import handle_payment_notification
 from .services import (
     bind_phone_to_user,
@@ -20,6 +20,7 @@ from .services import (
 )
 
 
+@override_settings(DEBUG=True, ENABLE_MOCK_PAYMENT=True, SHOPLITE_PAYMENT_SECRET="")
 class CheckoutFlowTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="buyer", password="secret")
@@ -31,11 +32,21 @@ class CheckoutFlowTests(TestCase):
             stock=5,
             sales=2,
         )
+        self.address = Address.objects.create(
+            user=self.user,
+            receiver="测试用户",
+            phone="13800138000",
+            province="广东省",
+            city="广州市",
+            district="天河区",
+            detail="测试路 1 号",
+            is_default=True,
+        )
 
     def test_create_order_from_cart_keeps_order_pending_and_clears_cart(self):
         CartItem.objects.create(user=self.user, product=self.product, quantity=2)
 
-        order = create_order_from_cart(self.user)
+        order = create_order_from_cart(self.user, address_id=self.address.id)
 
         self.assertEqual(order.status, Order.STATUS_PENDING)
         self.assertEqual(order.total_amount, Decimal("398.00"))
@@ -50,7 +61,7 @@ class CheckoutFlowTests(TestCase):
 
     def test_mark_order_paid_deducts_stock_once(self):
         CartItem.objects.create(user=self.user, product=self.product, quantity=2)
-        order = create_order_from_cart(self.user)
+        order = create_order_from_cart(self.user, address_id=self.address.id)
 
         paid_order, changed = mark_order_paid(order)
         self.assertTrue(changed)
@@ -69,7 +80,7 @@ class CheckoutFlowTests(TestCase):
 
     def test_payment_notification_validates_amount(self):
         CartItem.objects.create(user=self.user, product=self.product, quantity=1)
-        order = create_order_from_cart(self.user)
+        order = create_order_from_cart(self.user, address_id=self.address.id)
 
         with self.assertRaises(ValidationError):
             handle_payment_notification(
@@ -86,7 +97,7 @@ class CheckoutFlowTests(TestCase):
 
     def test_payment_notification_marks_order_paid(self):
         CartItem.objects.create(user=self.user, product=self.product, quantity=1)
-        order = create_order_from_cart(self.user)
+        order = create_order_from_cart(self.user, address_id=self.address.id)
 
         paid_order, changed = handle_payment_notification(
             {
@@ -102,7 +113,7 @@ class CheckoutFlowTests(TestCase):
 
     def test_cancel_pending_order_uses_cancelled_status(self):
         CartItem.objects.create(user=self.user, product=self.product, quantity=1)
-        order = create_order_from_cart(self.user)
+        order = create_order_from_cart(self.user, address_id=self.address.id)
 
         cancelled_order, changed = cancel_pending_order(order)
 
@@ -114,7 +125,7 @@ class PhoneVerificationTests(TestCase):
     def test_issue_and_verify_phone_code_once(self):
         verification = issue_phone_verification_code("13800138000")
 
-        verified = verify_phone_code("13800138000", verification.code)
+        verified = verify_phone_code("13800138000", verification._raw_code)
 
         self.assertEqual(verified.id, verification.id)
         verified.refresh_from_db()
@@ -125,7 +136,7 @@ class PhoneVerificationTests(TestCase):
     def test_phone_register_api_creates_session_user(self):
         verification = PhoneVerificationCode.objects.create(
             phone="13800138001",
-            code="123456",
+            code=self._code_digest("13800138001", PhoneVerificationCode.PURPOSE_REGISTER, "123456"),
             purpose=PhoneVerificationCode.PURPOSE_REGISTER,
             expires_at=timezone.now() + timezone.timedelta(minutes=5),
         )
@@ -151,7 +162,7 @@ class PhoneVerificationTests(TestCase):
         register_user_by_phone("13800138005", password="SecretPass123")
         PhoneVerificationCode.objects.create(
             phone="13800138005",
-            code="123456",
+            code=self._code_digest("13800138005", PhoneVerificationCode.PURPOSE_REGISTER, "123456"),
             purpose=PhoneVerificationCode.PURPOSE_REGISTER,
             expires_at=timezone.now() + timezone.timedelta(minutes=5),
         )
@@ -174,7 +185,7 @@ class PhoneVerificationTests(TestCase):
         user = register_user_by_phone("13800138004", password="SecretPass123")
         PhoneVerificationCode.objects.create(
             phone="13800138004",
-            code="123456",
+            code=self._code_digest("13800138004", PhoneVerificationCode.PURPOSE_LOGIN, "123456"),
             purpose=PhoneVerificationCode.PURPOSE_LOGIN,
             expires_at=timezone.now() + timezone.timedelta(minutes=5),
         )
@@ -193,7 +204,7 @@ class PhoneVerificationTests(TestCase):
     def test_phone_login_api_rejects_unregistered_phone(self):
         PhoneVerificationCode.objects.create(
             phone="13800138006",
-            code="123456",
+            code=self._code_digest("13800138006", PhoneVerificationCode.PURPOSE_LOGIN, "123456"),
             purpose=PhoneVerificationCode.PURPOSE_LOGIN,
             expires_at=timezone.now() + timezone.timedelta(minutes=5),
         )
@@ -223,7 +234,7 @@ class PhoneVerificationTests(TestCase):
         register_user_by_phone("13800138002", password="SecretPass123")
         PhoneVerificationCode.objects.create(
             phone="13800138002",
-            code="123456",
+            code=self._code_digest("13800138002", PhoneVerificationCode.PURPOSE_LOGIN, "123456"),
             purpose=PhoneVerificationCode.PURPOSE_LOGIN,
             expires_at=timezone.now() + timezone.timedelta(minutes=5),
         )
@@ -254,7 +265,14 @@ class PhoneVerificationTests(TestCase):
         with self.assertRaises(ValidationError):
             bind_phone_to_user(other, "13800138003")
 
+    @staticmethod
+    def _code_digest(phone, purpose, code):
+        from .services import _phone_code_digest
 
+        return _phone_code_digest(phone, purpose, code)
+
+
+@override_settings(DEBUG=True, WECHAT_LOGIN_MODE="mock")
 class WechatLoginTests(TestCase):
     def test_mock_wechat_login_creates_social_account(self):
         response = self.client.get("/api/auth/wechat/login/")

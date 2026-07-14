@@ -241,7 +241,19 @@ function sendMsg() {
     var messages = document.getElementById('chatMessages');
     var now = new Date();
     var time = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-    messages.innerHTML += '<div class="chat-msg mine"><div><div class="chat-msg-bubble">' + msg + '</div><div class="chat-msg-time">' + time + '</div></div></div>';
+    var row = document.createElement('div');
+    row.className = 'chat-msg mine';
+    var content = document.createElement('div');
+    var bubble = document.createElement('div');
+    bubble.className = 'chat-msg-bubble';
+    bubble.textContent = msg;
+    var timestamp = document.createElement('div');
+    timestamp.className = 'chat-msg-time';
+    timestamp.textContent = time;
+    content.appendChild(bubble);
+    content.appendChild(timestamp);
+    row.appendChild(content);
+    messages.appendChild(row);
     input.value = '';
     messages.scrollTop = messages.scrollHeight;
 }

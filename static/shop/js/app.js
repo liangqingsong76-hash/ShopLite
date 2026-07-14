@@ -10,6 +10,13 @@
     let suggestTimer = null;
     let selectedSuggestIndex = -1;
 
+    function textNode(tag, className, value) {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        element.textContent = value;
+        return element;
+    }
+
     function saveHistory(keyword) {
         if (!keyword) return;
         let history = localStorage.getItem("searchHistory");
@@ -24,15 +31,19 @@
         const history = localStorage.getItem("searchHistory");
         const items = history ? JSON.parse(history) : [];
         if (!items.length) {
-            searchHistory.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:6px 10px;">暂无搜索记录</div>';
+            searchHistory.replaceChildren(textNode("div", "search-empty", "暂无搜索记录"));
             return;
         }
 
-        searchHistory.innerHTML = items.map((item) =>
-            '<div class="search-history-item" onclick="fillSearch(\'' + item.replace(/'/g, "\\'") + '\')">' +
-                "<span>🕐</span><span>" + item + "</span>" +
-            "</div>"
-        ).join("");
+        const nodes = items.map((item) => {
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "search-history-item";
+            row.append(textNode("span", "", "🕐"), textNode("span", "", item));
+            row.addEventListener("click", () => fillSearch(item));
+            return row;
+        });
+        searchHistory.replaceChildren(...nodes);
     }
 
     function showDropdown() {
@@ -57,27 +68,33 @@
         if (searchHistory) loadHistory();
     }
 
-    function highlightMatch(text, query) {
-        if (!query) return text;
-        const idx = text.toLowerCase().indexOf(query.toLowerCase());
-        if (idx < 0) return text;
-        return text.substring(0, idx) + "<em>" + text.substring(idx, idx + query.length) + "</em>" + text.substring(idx + query.length);
-    }
-
     function fetchSuggestions(q) {
         fetch("/api/search/suggest/?q=" + encodeURIComponent(q))
             .then((resp) => resp.json())
             .then((data) => {
                 if (data.results && data.results.length > 0) {
                     searchSuggestGroup.style.display = "";
-                    searchSuggestResults.innerHTML = data.results.map((p) =>
-                        '<a class="search-suggest-item" href="/product/' + p.id + '/">' +
-                            '<span class="search-suggest-img">' + (p.image ? '<img src="' + p.image + '" alt="">' : '<span class="suggest-placeholder"></span>') + "</span>" +
-                            '<span class="search-suggest-info">' +
-                                '<span class="search-suggest-name">' + highlightMatch(p.name, q) + "</span>" +
-                                '<span class="search-suggest-price">¥' + p.price + "</span>" +
-                            "</span></a>"
-                    ).join("");
+                    const nodes = data.results.map((p) => {
+                        const link = document.createElement("a");
+                        link.className = "search-suggest-item";
+                        link.href = "/product/" + encodeURIComponent(p.id) + "/";
+                        const imageWrap = document.createElement("span");
+                        imageWrap.className = "search-suggest-img";
+                        if (p.image) {
+                            const img = document.createElement("img");
+                            img.src = p.image;
+                            img.alt = "";
+                            imageWrap.appendChild(img);
+                        } else {
+                            imageWrap.appendChild(textNode("span", "suggest-placeholder", ""));
+                        }
+                        const info = document.createElement("span");
+                        info.className = "search-suggest-info";
+                        info.append(textNode("span", "search-suggest-name", p.name), textNode("span", "search-suggest-price", "¥" + p.price));
+                        link.append(imageWrap, info);
+                        return link;
+                    });
+                    searchSuggestResults.replaceChildren(...nodes);
                 } else {
                     searchSuggestGroup.style.display = "none";
                 }
