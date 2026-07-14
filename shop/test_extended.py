@@ -264,6 +264,28 @@ class PageAndProfileTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
 
+    def test_duplicate_subcategory_names_are_scoped_by_parent(self):
+        menswear = Category.objects.create(name="男装")
+        womenswear = Category.objects.create(name="女装")
+        mens_coats = Category.objects.create(name="外套", parent=menswear)
+        womens_coats = Category.objects.create(name="外套", parent=womenswear)
+        mens_product = Product.objects.create(name="男士外套", category=mens_coats, price=Decimal("299.00"))
+        Product.objects.create(name="女士外套", category=womens_coats, price=Decimal("399.00"))
+
+        response = self.client.get(reverse("shop:category"), {"category": "男装", "subcategory": "外套"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([product.id for product in response.context["products"]], [mens_product.id])
+
+    def test_empty_category_renders_empty_state(self):
+        Category.objects.create(name="暂无商品分类")
+
+        response = self.client.get(reverse("shop:category"), {"category": "暂无商品分类"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["products"], [])
+        self.assertContains(response, "暂无匹配的商品")
+
 
 class AdminPageTests(TestCase):
     def setUp(self):
@@ -289,4 +311,6 @@ class AdminPageTests(TestCase):
         )
         for url in urls:
             with self.subTest(url=url):
-                self.assertEqual(self.client.get(url).status_code, 200)
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.headers["X-Frame-Options"], "SAMEORIGIN")

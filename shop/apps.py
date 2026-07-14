@@ -9,7 +9,7 @@ class ShopConfig(AppConfig):
     name = "shop"
 
     def ready(self):
-        # SimpleUI 会为其 iframe 布局移除点击劫持中间件；商城后台不依赖 iframe，恢复安全默认值。
+        # 保证点击劫持中间件始终启用；X_FRAME_OPTIONS=SAMEORIGIN 允许 SimpleUI 的同源 iframe。
         from django.conf import settings
 
         middleware = "django.middleware.clickjacking.XFrameOptionsMiddleware"

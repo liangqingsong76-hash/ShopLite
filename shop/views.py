@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from urllib.parse import urlencode
 
 from django.db import transaction
 from django.db.models import Sum
@@ -188,7 +189,11 @@ def _category_products(filters):
         breadcrumbs.append({"name": f"搜索: {filters['keyword']}"})
     else:
         page_title = filter_category or "商品分类"
-        products = list_products(category_name=filter_category or None, sort_by=filters["sort_by"])
+        products = list_products(
+            category_name=filter_category or None,
+            parent_category_name=filters["active_category"] if filters["active_subcategory"] else None,
+            sort_by=filters["sort_by"],
+        )
         breadcrumbs.append({"name": page_title})
 
     if filters["sort_type"] not in ("new", "hot"):
@@ -233,15 +238,17 @@ def _product_breadcrumbs(product):
     breadcrumbs = [{"name": "首页", "url": "shop:home"}]
     if product.category:
         if product.category.parent:
+            parent_name = product.category.parent.name
             breadcrumbs.append(
                 {
-                    "name": product.category.parent.name,
-                    "url": f"{reverse('shop:category')}?category={product.category.parent.name}",
+                    "name": parent_name,
+                    "url": f"{reverse('shop:category')}?{urlencode({'category': parent_name})}",
                 }
             )
-        breadcrumbs.append(
-            {"name": product.category.name, "url": f"{reverse('shop:category')}?category={product.category.name}"}
-        )
+            category_query = urlencode({"category": parent_name, "subcategory": product.category.name})
+        else:
+            category_query = urlencode({"category": product.category.name})
+        breadcrumbs.append({"name": product.category.name, "url": f"{reverse('shop:category')}?{category_query}"})
     breadcrumbs.append({"name": product.name})
     return breadcrumbs
 

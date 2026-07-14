@@ -4,7 +4,13 @@
 
 {% block extra_head %}
 <style>
-    .cat-layout { display: grid; grid-template-columns: 220px 1fr; gap: 32px; }
+    .cat-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 32px;
+        transition: opacity 0.16s ease;
+    }
+    .cat-layout.category-loading { opacity: 0.58; pointer-events: none; cursor: wait; }
 
     .cat-sidebar {
         background: #fafaf9;
@@ -31,8 +37,14 @@
         color: var(--ink);
         text-decoration: none;
     }
-    .sidebar-cat:hover { background: rgba(0,0,0,0.04); }
-    .sidebar-cat.active { background: var(--ink); color: #fff; }
+    .sidebar-cat:visited { color: var(--ink); }
+    .sidebar-cat:hover,
+    .sidebar-cat.active,
+    .sidebar-cat.active:visited {
+        background: #fff4ef;
+        color: var(--accent);
+    }
+    .sidebar-cat.active { box-shadow: inset 3px 0 0 var(--accent); font-weight: 700; }
     .sidebar-cat .arrow { font-size: 10px; transition: transform 0.2s; }
     .sidebar-cat.active .arrow { transform: rotate(90deg); }
 
@@ -51,8 +63,11 @@
         text-decoration: none;
         transition: all 0.15s;
     }
-    .sidebar-sub:hover { color: var(--ink); background: rgba(0,0,0,0.03); }
-    .sidebar-sub.active { color: var(--primary); font-weight: 600; }
+    .sidebar-sub:visited { color: var(--muted); }
+    .sidebar-sub:hover,
+    .sidebar-sub.active,
+    .sidebar-sub.active:visited { color: var(--accent); background: #fff4ef; }
+    .sidebar-sub.active { font-weight: 700; }
 
     .cat-toolbar {
         display: flex;
@@ -374,18 +389,17 @@
         {% for category in categories %}
             <div>
                 <a class="sidebar-cat{% if category.name == active_category %} active{% endif %}"
-                   href="{% url 'shop:category' %}?category={{ category.name }}"
-                   onclick="toggleSidebarSub(event, this)">
+                   href="{% url 'shop:category' %}?category={{ category.name|urlencode }}">
                     <span>{{ category.name }}</span>
                     <span class="arrow">›</span>
                 </a>
                 {% if category.subcategories %}
                     <div class="sidebar-subs{% if category.name == active_category %} show{% endif %}">
-                        <a class="sidebar-sub{% if not active_subcategory %} active{% endif %}"
-                           href="{% url 'shop:category' %}?category={{ category.name }}">全部</a>
+                        <a class="sidebar-sub{% if category.name == active_category and not active_subcategory %} active{% endif %}"
+                           href="{% url 'shop:category' %}?category={{ category.name|urlencode }}">全部</a>
                         {% for child in category.subcategories %}
-                            <a class="sidebar-sub{% if child.name == active_subcategory %} active{% endif %}"
-                               href="{% url 'shop:category' %}?category={{ category.name }}&subcategory={{ child.name }}">
+                            <a class="sidebar-sub{% if category.name == active_category and child.name == active_subcategory %} active{% endif %}"
+                               href="{% url 'shop:category' %}?category={{ category.name|urlencode }}&subcategory={{ child.name|urlencode }}">
                                 {{ child.name }}
                             </a>
                         {% endfor %}
@@ -459,7 +473,7 @@
                 <a class="f-pill{% if price_min == '300' and price_max == '499' %} active{% endif %}" href="#" data-price-min="300" data-price-max="499">300-499元</a>
                 <a class="f-pill{% if price_min == '500' %} active{% endif %}" href="#" data-price-min="500" data-price-max="">500元以上</a>
             </div>
-            <form class="price-input-row" id="priceCustomForm" onsubmit="return applyPriceRange()">
+            <form class="price-input-row" id="priceCustomForm">
                 <input type="number" id="priceMinInput" placeholder="¥最低价" value="{{ price_min }}">
                 <span style="color: var(--muted);">-</span>
                 <input type="number" id="priceMaxInput" placeholder="¥最高价" value="{{ price_max }}">
@@ -518,80 +532,175 @@
 {% block extra_scripts %}
 <script>
 (function() {
-    var currentParams = {
-        category: '{{ active_category|default:"" }}',
-        subcategory: '{{ active_subcategory|default:"" }}',
-        brand: '{{ brand_filter|default:"" }}',
-        price_min: '{{ price_min|default:"" }}',
-        price_max: '{{ price_max|default:"" }}',
-        q: '{{ keyword|default:"" }}',
-        sort_by: '{{ sort_by|default:"" }}'
-    };
+    var categoryPath = '{% url "shop:category" %}';
+    var activeRequest = null;
 
-    function cleanParams(obj) {
-        var cleaned = {};
-        for (var key in obj) {
-            if (obj.hasOwnProperty(key) && obj[key] !== '' && obj[key] !== null && obj[key] !== undefined) {
-                cleaned[key] = obj[key];
-            }
-        }
-        return cleaned;
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
+    function categoryApp() {
+        return document.getElementById('categoryApp');
     }
 
     function buildURL(overrides) {
-        var params = {};
-        for (var key in currentParams) {
-            if (currentParams.hasOwnProperty(key)) {
-                params[key] = currentParams[key];
-            }
-        }
+        var url = new URL(window.location.href);
+        url.pathname = categoryPath;
+        url.hash = '';
         for (var k in overrides) {
             if (overrides.hasOwnProperty(k)) {
                 if (overrides[k] === '' || overrides[k] === null || overrides[k] === undefined) {
-                    delete params[k];
+                    url.searchParams.delete(k);
                 } else {
-                    params[k] = overrides[k];
+                    url.searchParams.set(k, overrides[k]);
                 }
             }
         }
-        var query = [];
-        for (var key in params) {
-            if (params.hasOwnProperty(key) && params[key] !== '') {
-                query.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
+        return url.pathname + url.search;
+    }
+
+    function restoreScroll(x, y, app) {
+        var shell = document.querySelector('.page-shell');
+        var previousOverflowAnchor = shell ? shell.style.overflowAnchor : '';
+        if (shell) shell.style.overflowAnchor = 'none';
+        window.scrollTo(x, y);
+        requestAnimationFrame(function() {
+            window.scrollTo(x, y);
+            requestAnimationFrame(function() {
+                window.scrollTo(x, y);
+                setTimeout(function() {
+                    window.scrollTo(x, y);
+                    if (app) app.style.minHeight = '';
+                    if (shell) shell.style.overflowAnchor = previousOverflowAnchor;
+                }, 60);
+            });
+        });
+    }
+
+    function setLoading(isLoading) {
+        var app = categoryApp();
+        if (!app) return;
+        app.classList.toggle('category-loading', isLoading);
+        if (isLoading) {
+            app.setAttribute('aria-busy', 'true');
+        } else {
+            app.removeAttribute('aria-busy');
+        }
+    }
+
+    async function loadCategory(target, options) {
+        options = options || {};
+        var currentApp = categoryApp();
+        if (!currentApp) {
+            window.location.assign(target);
+            return;
+        }
+
+        var targetURL = new URL(target, window.location.href);
+        var scrollX = options.scrollX === undefined ? window.scrollX : options.scrollX;
+        var scrollY = options.scrollY === undefined ? window.scrollY : options.scrollY;
+
+        if (activeRequest) activeRequest.abort();
+        activeRequest = new AbortController();
+        var requestController = activeRequest;
+        setLoading(true);
+
+        try {
+            var response = await fetch(targetURL.href, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: requestController.signal
+            });
+            if (!response.ok) throw new Error('Category request failed');
+
+            var html = await response.text();
+            var nextDocument = new DOMParser().parseFromString(html, 'text/html');
+            var nextApp = nextDocument.getElementById('categoryApp');
+            if (!nextApp) {
+                window.location.assign(response.url || targetURL.href);
+                return;
+            }
+
+            nextApp.style.minHeight = currentApp.getBoundingClientRect().height + 'px';
+            nextApp.classList.remove('category-loading');
+            nextApp.removeAttribute('aria-busy');
+            currentApp.replaceWith(nextApp);
+
+            var nextTitle = nextDocument.querySelector('title');
+            if (nextTitle) document.title = nextTitle.textContent;
+
+            var nextSearchInput = nextDocument.getElementById('searchInput');
+            var searchInput = document.getElementById('searchInput');
+            if (nextSearchInput && searchInput) searchInput.value = nextSearchInput.value;
+
+            if (options.push !== false) {
+                history.replaceState(
+                    Object.assign({}, history.state || {}, { categoryScrollX: scrollX, categoryScrollY: scrollY }),
+                    '',
+                    window.location.href
+                );
+                history.pushState(
+                    { categoryAjax: true, categoryScrollX: scrollX, categoryScrollY: scrollY },
+                    '',
+                    targetURL.pathname + targetURL.search
+                );
+            }
+            restoreScroll(scrollX, scrollY, nextApp);
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                window.location.assign(targetURL.href);
+            }
+        } finally {
+            if (activeRequest === requestController) {
+                activeRequest = null;
+                setLoading(false);
             }
         }
-        return '{% url "shop:category" %}' + (query.length ? '?' + query.join('&') : '');
     }
 
     function navigateTo(overrides) {
-        window.location.href = buildURL(overrides);
+        loadCategory(buildURL(overrides));
     }
 
-    document.querySelectorAll('.sort-pill').forEach(function(pill) {
-        pill.addEventListener('click', function(e) {
-            e.preventDefault();
-            navigateTo({ sort_by: this.getAttribute('data-sort') });
-        });
-    });
+    document.addEventListener('click', function(event) {
+        var app = event.target.closest('#categoryApp');
+        if (!app) return;
 
-    document.querySelectorAll('#brandPills .f-pill').forEach(function(pill) {
-        pill.addEventListener('click', function(e) {
-            e.preventDefault();
-            navigateTo({ brand: this.getAttribute('data-brand') });
-        });
-    });
+        var directLink = event.target.closest('.sidebar-cat, .sidebar-sub, #clearAllFilters, .empty-state a');
+        if (directLink && directLink.href && new URL(directLink.href).pathname === categoryPath) {
+            event.preventDefault();
+            loadCategory(directLink.href);
+            return;
+        }
 
-    document.querySelectorAll('#pricePills .f-pill').forEach(function(pill) {
-        pill.addEventListener('click', function(e) {
-            e.preventDefault();
-            navigateTo({ price_min: this.getAttribute('data-price-min'), price_max: this.getAttribute('data-price-max') });
-        });
-    });
+        var sortPill = event.target.closest('.sort-pill');
+        if (sortPill) {
+            event.preventDefault();
+            navigateTo({ sort_by: sortPill.getAttribute('data-sort') });
+            return;
+        }
 
-    document.querySelectorAll('.filter-tag-remove').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            var removeKey = this.getAttribute('data-remove');
+        var brandPill = event.target.closest('#brandPills .f-pill');
+        if (brandPill) {
+            event.preventDefault();
+            navigateTo({ brand: brandPill.getAttribute('data-brand') });
+            return;
+        }
+
+        var pricePill = event.target.closest('#pricePills .f-pill');
+        if (pricePill) {
+            event.preventDefault();
+            navigateTo({
+                price_min: pricePill.getAttribute('data-price-min'),
+                price_max: pricePill.getAttribute('data-price-max')
+            });
+            return;
+        }
+
+        var removeButton = event.target.closest('.filter-tag-remove');
+        if (removeButton) {
+            event.preventDefault();
+            var removeKey = removeButton.getAttribute('data-remove');
             var overrides = {};
             if (removeKey === 'category') {
                 overrides = { category: '', subcategory: '' };
@@ -603,15 +712,53 @@
                 overrides = { q: '' };
             }
             navigateTo(overrides);
+        }
+    });
+
+    document.addEventListener('submit', function(event) {
+        if (event.target.id === 'priceCustomForm') {
+            event.preventDefault();
+            var minInput = document.getElementById('priceMinInput');
+            var maxInput = document.getElementById('priceMaxInput');
+            navigateTo({
+                price_min: minInput ? minInput.value.trim() : '',
+                price_max: maxInput ? maxInput.value.trim() : ''
+            });
+            return;
+        }
+
+        if (event.target.id === 'searchForm' && categoryApp()) {
+            event.preventDefault();
+            var searchInput = document.getElementById('searchInput');
+            var query = searchInput ? searchInput.value.trim() : '';
+            loadCategory(categoryPath + (query ? '?q=' + encodeURIComponent(query) : ''));
+        }
+    });
+
+    window.addEventListener('popstate', function(event) {
+        if (window.location.pathname !== categoryPath || !categoryApp()) {
+            window.location.reload();
+            return;
+        }
+        var state = event.state || {};
+        loadCategory(window.location.href, {
+            push: false,
+            scrollX: state.categoryScrollX === undefined ? window.scrollX : state.categoryScrollX,
+            scrollY: state.categoryScrollY === undefined ? window.scrollY : state.categoryScrollY
         });
     });
 
-    window.applyPriceRange = function() {
-        var min = document.getElementById('priceMinInput').value.trim();
-        var max = document.getElementById('priceMaxInput').value.trim();
-        navigateTo({ price_min: min, price_max: max });
-        return false;
-    };
+    if (!history.state || !history.state.categoryAjax) {
+        history.replaceState(
+            Object.assign({}, history.state || {}, {
+                categoryAjax: true,
+                categoryScrollX: window.scrollX,
+                categoryScrollY: window.scrollY
+            }),
+            '',
+            window.location.href
+        );
+    }
 
     window.quickAddToCart = function(productId, el) {
         var fd = new FormData();
@@ -647,16 +794,5 @@
         return '';
     };
 })();
-</script>
-
-<script>
-function toggleSidebarSub(e, el) {
-    e.preventDefault();
-    var next = el.nextElementSibling;
-    if (next && next.classList.contains('sidebar-subs')) {
-        next.classList.toggle('show');
-    }
-    window.location.href = el.getAttribute('href');
-}
 </script>
 {% endblock %}

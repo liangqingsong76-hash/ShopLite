@@ -16,12 +16,25 @@ E:\envs\shoplite\python.exe --version
 
 ### 2. 安装依赖
 
+请先关闭旧终端，重新打开 CMD/PowerShell，再激活环境。`shoplite` 已配置 `PYTHONNOUSERSITE=1`，会阻止用户级 Python 包混入项目环境，避免出现 Scrapy 等其他项目残留依赖。
+
+```powershell
+conda deactivate
+conda activate E:\envs\shoplite
+python --version
+python -m pip --version
+```
+
+`python -m pip --version` 应显示路径包含 `E:\envs\shoplite\Lib\site-packages`。如果仍显示 `C:\Users\16904\AppData\Roaming\Python`，不要继续安装，先重新激活环境。
+
 首次运行或 `requirements.txt` 更新后执行：
 
 ```powershell
 E:\envs\shoplite\python.exe -m pip install -r requirements.txt
 E:\envs\shoplite\python.exe -m pip check
 ```
+
+如果 `pip check` 报告 `scrapy`、`twisted` 或爬虫依赖缺失，说明当前终端仍加载了用户级包。执行上面的 `conda deactivate` / `conda activate` 后重试；不要为了消除该提示重新安装 Scrapy，本项目不使用 Scrapy。
 
 ### 3. 准备 MySQL
 

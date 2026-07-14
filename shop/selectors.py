@@ -42,6 +42,7 @@ def list_products(
     new=False,
     recommended=False,
     category_name=None,
+    parent_category_name=None,
     keyword=None,
     brand=None,
     price_min=None,
@@ -57,7 +58,7 @@ def list_products(
     if recommended:
         products = products.filter(is_recommended=True)
     if category_name:
-        products = _filter_by_category_name(products, category_name)
+        products = _filter_by_category_path(products, category_name, parent_category_name)
     if keyword:
         products = products.filter(name__icontains=keyword)
     if brand:
@@ -73,17 +74,24 @@ def list_products(
     return list(products)
 
 
-def _filter_by_category_name(products, category_name):
-    try:
-        category = Category.objects.get(name=category_name)
-    except Category.DoesNotExist:
-        return products.filter(category__name=category_name)
+def _filter_by_category_path(products, category_name, parent_category_name=None):
+    """按分类层级筛选，允许不同父分类拥有同名子分类。"""
+    matches = Category.objects.filter(is_active=True, name=category_name)
 
-    if category.parent_id:
-        return products.filter(category=category)
+    if parent_category_name:
+        matches = matches.filter(parent__is_active=True, parent__name=parent_category_name)
+        return products.filter(category_id__in=matches.values("id"))
 
-    child_ids = list(category.children.values_list("id", flat=True))
-    return products.filter(category_id__in=[category.id, *child_ids])
+    top_level_ids = list(matches.filter(parent__isnull=True).values_list("id", flat=True))
+    if top_level_ids:
+        child_ids = Category.objects.filter(
+            is_active=True,
+            parent_id__in=top_level_ids,
+        ).values_list("id", flat=True)
+        return products.filter(category_id__in=[*top_level_ids, *child_ids])
+
+    # 兼容只传子分类名的旧链接：返回所有同名子分类，而不是使用 get() 抛出重复异常。
+    return products.filter(category_id__in=matches.values("id"))
 
 
 def _product_ordering(sort_by):

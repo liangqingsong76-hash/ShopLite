@@ -145,7 +145,7 @@
     <aside class="home-cat-list">
         <div class="home-cat-head">全部商品分类</div>
         {% for category in categories %}
-            <a class="home-cat-item" href="{% url 'shop:category' %}?category={{ category.name }}">
+            <a class="home-cat-item" href="{% url 'shop:category' %}?category={{ category.name|urlencode }}">
                 <span>{{ category.name }}</span>
                 <span style="color:var(--muted);">&gt;</span>
             </a>
@@ -185,7 +185,7 @@
 
     <div class="category-bubbles">
         {% for category in categories|slice:":6" %}
-            <a class="bubble" href="{% url 'shop:category' %}?category={{ category.name }}">
+            <a class="bubble" href="{% url 'shop:category' %}?category={{ category.name|urlencode }}">
                 <span class="bubble-icon">🛍️</span>
                 <span>{{ category.name }}</span>
             </a>

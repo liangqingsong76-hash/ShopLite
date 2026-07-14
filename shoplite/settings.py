@@ -297,8 +297,9 @@ ACCOUNT_EMAIL_VERIFICATION = "none"
 # 所有模型自动生成的主键 id 字段，都用 大整数类型（BIGINT），这样数据量再大也不用担心主键不够用
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# 生产安全开关：反向代理部署时启用 HTTPS 重定向、安全 Cookie、HSTS 与代理协议头。
-X_FRAME_OPTIONS = "DENY"
+# SimpleUI 管理后台使用同源 iframe 加载管理页面。SAMEORIGIN 允许本站后台正常嵌套，
+# 同时仍会阻止第三方网站把 ShopLite 页面嵌入 iframe，避免点击劫持。
+X_FRAME_OPTIONS = "SAMEORIGIN"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 if PRODUCTION:
