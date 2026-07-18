@@ -74,6 +74,7 @@ class OrderItemInline(admin.TabularInline):
         return False
 
 
+# 自定义过滤器：用于在后台商品列表页按库存状态快速筛选
 class StockLevelFilter(admin.SimpleListFilter):
     title = "库存状态"
     parameter_name = "stock_level"
@@ -95,7 +96,8 @@ class StockLevelFilter(admin.SimpleListFilter):
         return queryset
 
 
-@admin.register(Category)
+#  商品分类（Category）模型的后台配置
+@admin.register(Category)   # admin.site.register(Category, CategoryAdmin)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "parent", "sort_order", "is_active", "children_count", "product_count")
     list_filter = ("is_active", "parent")
@@ -123,6 +125,7 @@ class CategoryAdmin(admin.ModelAdmin):
         return obj.products_total
 
 
+#  商品管理（Product）模型的后台配置
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
@@ -226,6 +229,7 @@ class ProductAdmin(admin.ModelAdmin):
         queryset.update(is_hot=False, is_new=False, is_recommended=False)
 
 
+# 商品图片（ProductImage）模型的后台配置
 @admin.register(ProductImage)
 class ProductImageAdmin(admin.ModelAdmin):
     list_display = ("image_preview", "product", "is_main", "sort_order")
@@ -241,6 +245,7 @@ class ProductImageAdmin(admin.ModelAdmin):
         return "-"
 
 
+# 订单管理（Order）模型的后台配置
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ("order_no", "user", "status_badge", "pay_amount", "items_count", "address_summary", "created_at", "paid_at")
@@ -327,6 +332,7 @@ class OrderAdmin(admin.ModelAdmin):
         self.message_user(request, f"已取消 {changed} 个待付款订单", messages.SUCCESS)
 
 
+# 订单明细（OrderItem）模型的后台配置
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ("order", "product_name", "price", "quantity", "subtotal")
@@ -339,6 +345,7 @@ class OrderItemAdmin(admin.ModelAdmin):
         return False
 
 
+# 购物车项（CartItem）模型的后台配置
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
     list_display = ("user", "product", "color", "quantity", "subtotal", "is_selected", "updated_at")
@@ -348,6 +355,7 @@ class CartItemAdmin(admin.ModelAdmin):
     list_per_page = 30
 
 
+# 用户资料（UserProfile）模型的后台配置
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "phone", "phone_verified_at", "updated_at")
@@ -356,6 +364,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "phone_verified_at")
 
 
+# 短信验证码（PhoneVerificationCode）模型的后台配置
 @admin.register(PhoneVerificationCode)
 class PhoneVerificationCodeAdmin(admin.ModelAdmin):
     list_display = ("phone", "purpose", "created_at", "expires_at", "used_at", "sent_to_backend")
@@ -367,6 +376,7 @@ class PhoneVerificationCodeAdmin(admin.ModelAdmin):
         return False
 
 
+# 收货地址（Address）模型的后台配置
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
     list_display = ("user", "receiver", "phone", "province", "city", "district", "is_default", "created_at")
@@ -382,6 +392,7 @@ class AddressAdmin(admin.ModelAdmin):
     )
 
 
+# 商品收藏（Favorite）模型的后台配置
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
     list_display = ("user", "product", "created_at")
@@ -390,6 +401,7 @@ class FavoriteAdmin(admin.ModelAdmin):
     list_select_related = ("user", "product")
 
 
+# 商品评价（Review）模型的后台配置
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_display = ("product", "username", "rating", "is_anonymous", "created_at")
@@ -399,6 +411,7 @@ class ReviewAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at",)
 
 
+# 优惠券（Coupon）模型的后台配置
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
     list_display = ("code", "name", "discount_type", "value", "minimum_spend", "stock_status", "valid_from", "valid_until", "is_active")
@@ -412,6 +425,7 @@ class CouponAdmin(admin.ModelAdmin):
         return f"{obj.claimed_count} / {obj.total_quantity or '不限量'}"
 
 
+# 用户领取的优惠券（UserCoupon）模型的后台配置
 @admin.register(UserCoupon)
 class UserCouponAdmin(admin.ModelAdmin):
     list_display = ("user", "coupon", "status_display", "claimed_at", "used_at")
@@ -431,6 +445,7 @@ class UserCouponAdmin(admin.ModelAdmin):
         return False
 
 
+# 支付流水（PaymentTransaction）模型的后台配置
 @admin.register(PaymentTransaction)
 class PaymentTransactionAdmin(admin.ModelAdmin):
     list_display = ("transaction_no", "order", "provider", "amount", "status", "created_at", "completed_at")
@@ -446,6 +461,7 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
         return False
 
 
+# 退款管理（RefundRequest）模型的后台配置
 @admin.register(RefundRequest)
 class RefundRequestAdmin(admin.ModelAdmin):
     list_display = ("refund_no", "order", "user", "amount", "status", "created_at", "completed_at")
@@ -481,6 +497,7 @@ class RefundRequestAdmin(admin.ModelAdmin):
         self.message_user(request, f"已拒绝 {count} 条退款申请", messages.SUCCESS)
 
 
+# 站内通知（Notification）模型的后台配置
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ("title", "user", "category", "is_read", "created_at")
@@ -490,6 +507,7 @@ class NotificationAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at",)
 
 
+# 浏览记录（BrowsingHistory）模型的后台配置
 @admin.register(BrowsingHistory)
 class BrowsingHistoryAdmin(admin.ModelAdmin):
     list_display = ("user", "product", "viewed_at")

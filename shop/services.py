@@ -1,3 +1,4 @@
+# 业务逻辑层
 import uuid
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
@@ -31,7 +32,8 @@ from .models import (
     UserProfile,
 )
 
-FREE_SHIPPING = Decimal("0.00")
+# 常量
+FREE_SHIPPING = Decimal("0.00")    # Decimal("xxx")数据类型转化，带引号数据更精确
 DISCOUNT_THRESHOLD = Decimal("299.00")
 DISCOUNT_AMOUNT = Decimal("30.00")
 MIN_QUANTITY = 1
@@ -39,28 +41,36 @@ MAX_QUANTITY = 99
 PHONE_CODE_TTL_MINUTES = 5
 PHONE_CODE_RESEND_SECONDS = 60
 PHONE_CODE_MAX_ATTEMPTS = 5
-PHONE_PATTERN = re.compile(r"^1[3-9]\d{9}$")
-_random = SystemRandom()
+PHONE_PATTERN = re.compile(r"^1[3-9]\d{9}$")  # 手机号正则
+_random = SystemRandom()    # 创建密码学安全的随机数生成器
 
-
+'''
+语法	                含义
+@dataclass	        自动生成 __init__、__repr__ 等方法，不用手写 def __init__(self, ...)
+frozen=True	        实例化后不可修改，类似只读对象，防止金额被意外篡改
+subtotal: Decimal	类型注解，表示这个字段应该传 Decimal 类型，功能类似注释
+'''
+# 购物车结算数据类
 @dataclass(frozen=True)
 class CartTotals:
-    subtotal: Decimal
-    discount: Decimal
-    promotion_discount: Decimal
-    coupon_discount: Decimal
-    shipping_fee: Decimal
-    payable: Decimal
+    subtotal: Decimal            # 小计
+    discount: Decimal            # 总优惠
+    promotion_discount: Decimal  # 满减优惠
+    coupon_discount: Decimal     # 优惠券优惠
+    shipping_fee: Decimal        # 运费
+    payable: Decimal             # 最终应付
 
 
-def parse_quantity(value, *, default=1):
+# 限制传入参数在 1-99 之间，防恶意传参
+def parse_quantity(value, *, default=1):    # *号强制关键字传参，如parse_quantity("5", default=3)
     try:
         quantity = int(value)
     except (TypeError, ValueError):
         quantity = default
-    return max(MIN_QUANTITY, min(quantity, MAX_QUANTITY))
+    return max(MIN_QUANTITY, min(quantity, MAX_QUANTITY))  # 常量：MIN_QUANTITY = 1  MAX_QUANTITY = 99
 
 
+# 安全地将传入参数转为Decimal类型
 def parse_decimal(value):
     if value in (None, ""):
         return None
@@ -70,23 +80,25 @@ def parse_decimal(value):
         return None
 
 
+# 去掉空格、去掉 +86 前缀、校验格式
 def normalize_phone(phone):
-    phone = re.sub(r"\s+", "", str(phone or ""))
-    if phone.startswith("+86"):
+    phone = re.sub(r"\s+", "", str(phone or ""))    # 清洗手机号中的空白字符
+    if phone.startswith("+86"):      # startswith()判断字符串是否以指定的内容开头
         phone = phone[3:]
-    if not PHONE_PATTERN.match(phone):
+    if not PHONE_PATTERN.match(phone):     # 正则匹配输入手机号，正确返回True
         raise ValidationError("请输入有效的中国大陆手机号")
     return phone
 
 
-def issue_phone_verification_code(phone, *, purpose=PhoneVerificationCode.PURPOSE_LOGIN):
+# 验证码发送
+def issue_phone_verification_code(phone, *, purpose=PhoneVerificationCode.PURPOSE_LOGIN):   # purpose不固定，可以是登录，也可以是注册
     phone = normalize_phone(phone)
     rate_key = f"sms-send:{purpose}:{phone}"
-    if not cache.add(rate_key, "1", timeout=PHONE_CODE_RESEND_SECONDS):
+    if not cache.add(rate_key, "1", timeout=PHONE_CODE_RESEND_SECONDS):   # "1"占位，无实际意义，rate_key存在返回False
         raise ValidationError("验证码发送太频繁，请稍后再试")
     try:
         _assert_phone_code_can_send(phone, purpose)
-        raw_code = f"{_random.randint(0, 999999):06d}"
+        raw_code = f"{_random.randint(0, 999999):06d}"      # 生成安全随机验证码，:06d不足6位前面补 0
         verification = PhoneVerificationCode.objects.create(
             phone=phone,
             code=_phone_code_digest(phone, purpose, raw_code),
@@ -102,6 +114,7 @@ def issue_phone_verification_code(phone, *, purpose=PhoneVerificationCode.PURPOS
     return verification
 
 
+# 发送验证码前的业务校验
 def validate_phone_code_request(phone, purpose, *, user=None):
     phone = normalize_phone(phone)
     existing_user = get_user_by_phone(phone)
@@ -121,6 +134,7 @@ def validate_phone_code_request(phone, purpose, *, user=None):
     return phone
 
 
+# 验证码发送策略分发函数
 def send_phone_verification_code(phone, code, purpose):
     provider = getattr(settings, "SMS_PROVIDER", "console")
     if provider == "console":
@@ -131,7 +145,9 @@ def send_phone_verification_code(phone, code, purpose):
     raise ValidationError("短信服务未配置")
 
 
+# 腾讯云短信SDK发送真实短信的函数
 def _send_tencent_sms(phone, code):
+    # 读取.env参数
     sms_secret_id = getattr(settings, "TENCENT_SMS_SECRET_ID", "")
     sms_secret_key = getattr(settings, "TENCENT_SMS_SECRET_KEY", "")
     sms_sdk_app_id = getattr(settings, "TENCENT_SMS_SDK_APP_ID", "")
@@ -172,19 +188,24 @@ def _send_tencent_sms(phone, code):
     return True
 
 
+# 控制台短信发送函数
 def _send_console_sms(phone, code, purpose):
     print(f"[ShopLite SMS] phone={phone} purpose={purpose} code={code}")
     return True
 
 
+# 验证码校验函数
 def verify_phone_code(phone, code, *, purpose=PhoneVerificationCode.PURPOSE_LOGIN):
+    # 输入清洗与格式校验
     phone = normalize_phone(phone)
     code = str(code or "").strip()
     if not re.fullmatch(r"\d{6}", code):
         raise ValidationError("请输入 6 位短信验证码")
 
+    # 准备变量
     error = None
     verification = None
+    # 事务 + 行锁查询
     with transaction.atomic():
         verification = (
             PhoneVerificationCode.objects.select_for_update()
@@ -225,11 +246,14 @@ def verify_phone_code(phone, code, *, purpose=PhoneVerificationCode.PURPOSE_LOGI
     return verification
 
 
+# 哈希加密函数
 def _phone_code_digest(phone, purpose, code):
     value = f"{phone}|{purpose}|{code}"
+    # salted_hmac()Django 提供的一个加盐哈希函数，shoplite.phone-verification随便编的
     return salted_hmac("shoplite.phone-verification", value).hexdigest()
 
 
+# 通过手机号查询用户函数
 def get_user_by_phone(phone):
     phone = normalize_phone(phone)
     profile = UserProfile.objects.select_related("user").filter(phone=phone).first()
@@ -238,18 +262,23 @@ def get_user_by_phone(phone):
     return None
 
 
-@transaction.atomic
+# 通过手机号注册用户函数
+@transaction.atomic   # 整个函数在一个数据库事务中执行。如果中间任何一步失败，已写入的数据全部回滚，不会出现"用户建了但 Profile 没建成"的数据不一致情况
 def register_user_by_phone(phone, *, password=None):
     phone = normalize_phone(phone)
+    # 防止重复注册
     if UserProfile.objects.filter(phone=phone).exists():
         raise ValidationError("该手机号已注册，请直接登录")
-
+    # 检查密码
     if not password:
         raise ValidationError("请设置登录密码")
+    # 生成用户名
     username = _build_phone_username(phone)
-    user = User(username=username)
-    validate_password(password, user=user)
-    user.set_password(password)
+    # 创建 User 对象并校验密码
+    user = User(username=username)    # 创建一个 Python 对象
+    validate_password(password, user=user)    # Django 内置的密码强度校验
+    user.set_password(password)    # Django 自动对密码做加盐哈希
+    # 写入数据库
     try:
         user.save()
         UserProfile.objects.create(user=user, phone=phone, phone_verified_at=timezone.now())
@@ -258,73 +287,85 @@ def register_user_by_phone(phone, *, password=None):
     return user
 
 
+# 验证码注册封装
 def register_user_with_phone_code(phone, code, password):
     phone = normalize_phone(phone)
+    # 防重复注册
     if UserProfile.objects.filter(phone=phone).exists():
         raise ValidationError("该手机号已注册，请直接登录")
+    # 提前检验密码强度
     candidate = User(username=_build_phone_username(phone))
     validate_password(password, user=candidate)
+    # 校验验证码
     verify_phone_code(phone, code, purpose=PhoneVerificationCode.PURPOSE_REGISTER)
     return register_user_by_phone(phone, password=password)
 
 
+# 智能登录验证函数
 def authenticate_by_login_identifier(request, identifier, password):
+    # 清洗输入
     identifier = str(identifier or "").strip()
     if not identifier or not password:
         raise ValidationError("请输入账号和密码")
 
     username = identifier
+    # 手机号查询验证
     try:
         user = get_user_by_phone(identifier)
     except ValidationError:
         user = None
     if user:
         username = user.username
+    # 邮箱查询验证
     elif "@" in identifier:
         email_users = User.objects.filter(email__iexact=identifier, is_active=True)
         if email_users.count() == 1:
             username = email_users.first().username
 
+    # django认证，authenticate() 是 Django 内置的函数，在 User 表中验证用户名 + 密码
     user = authenticate(request, username=username, password=password)
     if not user:
         raise ValidationError("账号或密码错误")
     return user
 
 
-@transaction.atomic
-def get_or_create_user_by_wechat(uid, *, nickname="微信用户", extra_data=None):
-    try:
-        from allauth.socialaccount.models import SocialAccount
-    except ImportError as exc:
-        raise ValidationError("微信登录依赖 django-allauth，请先安装并启用") from exc
-
-    uid = str(uid or "").strip()
-    if not uid:
-        raise ValidationError("微信用户标识不能为空")
-
-    social_account = SocialAccount.objects.select_related("user").filter(provider="weixin", uid=uid).first()
-    if social_account:
-        return social_account.user, False
-
-    username = _build_social_username("wx")
-    user = User.objects.create_user(username=username)
-    if nickname:
-        user.first_name = str(nickname)[:150]
-        user.save(update_fields=["first_name"])
-    SocialAccount.objects.create(
-        user=user,
-        provider="weixin",
-        uid=uid,
-        extra_data=extra_data or {"nickname": nickname},
-    )
-    UserProfile.objects.get_or_create(user=user)
-    return user, True
-
-
-def mock_wechat_uid():
-    return "mock-wechat-openid"
+# # 微信登录
+# @transaction.atomic
+# def get_or_create_user_by_wechat(uid, *, nickname="微信用户", extra_data=None):
+#     try:
+#         from allauth.socialaccount.models import SocialAccount
+#     except ImportError as exc:
+#         raise ValidationError("微信登录依赖 django-allauth，请先安装并启用") from exc
+#
+#     uid = str(uid or "").strip()
+#     if not uid:
+#         raise ValidationError("微信用户标识不能为空")
+#
+#     social_account = SocialAccount.objects.select_related("user").filter(provider="weixin", uid=uid).first()
+#     if social_account:
+#         return social_account.user, False
+#
+#     username = _build_social_username("wx")
+#     user = User.objects.create_user(username=username)
+#     if nickname:
+#         user.first_name = str(nickname)[:150]
+#         user.save(update_fields=["first_name"])
+#     SocialAccount.objects.create(
+#         user=user,
+#         provider="weixin",
+#         uid=uid,
+#         extra_data=extra_data or {"nickname": nickname},
+#     )
+#     UserProfile.objects.get_or_create(user=user)
+#     return user, True
 
 
+# # 模拟微信UID
+# def mock_wechat_uid():
+#     return "mock-wechat-openid"
+
+
+# 将手机号绑定到已有用户
 def bind_phone_to_user(user, phone):
     phone = normalize_phone(phone)
     if UserProfile.objects.filter(phone=phone).exclude(user=user).exists():
