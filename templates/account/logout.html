@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopLite - 退出登录</title>
+    <style>
+        {% include "account/auth_base.css" %}
+    </style>
+</head>
+<body>
+    <header class="auth-topbar">
+        <a class="auth-brand" href="{% url 'shop:home' %}">
+            <span class="brand-mark">S</span>
+            <span>ShopLite</span>
+        </a>
+        <nav class="auth-links" aria-label="账号页快捷入口">
+            <a href="{% url 'shop:home' %}">返回首页</a>
+            <a href="{% url 'shop:profile' %}">个人中心</a>
+        </nav>
+    </header>
+
+    <main class="auth-page">
+        <section class="logout-card">
+            <h1>确认退出登录？</h1>
+            <p>退出后当前设备将不再保持登录状态，购物车和订单信息仍会保留在您的账号中。</p>
+            <form method="post" action="{% url 'account_logout' %}">
+                {% csrf_token %}
+                {% if redirect_field_value %}
+                    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                {% endif %}
+                <div class="logout-actions">
+                    <a class="secondary-link" href="{% url 'shop:profile' %}">取消</a>
+                    <button class="primary-submit" type="submit">确认退出</button>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

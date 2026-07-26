@@ -1,0 +1,21 @@
+{# 文件职责：分类页共享分页导航；保留现有筛选参数，仅改变 page，不查询或修改业务数据。 #}
+{% if products.paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="商品分页">
+    {% if products.has_previous %}
+        <a href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ products.previous_page_number }}">上一页</a>
+    {% endif %}
+    {% for page_number in products.paginator.page_range %}
+        {% if page_number == products.number %}
+            <span class="current-page" aria-current="page">第 {{ page_number }} 页</span>
+        {% elif page_number == 1 or page_number == products.paginator.num_pages or page_number >= products.number|add:"-2" and page_number <= products.number|add:"2" %}
+            <a href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_number }}"
+               aria-label="前往第 {{ page_number }} 页">{{ page_number }}</a>
+        {% elif page_number == products.number|add:"-3" or page_number == products.number|add:"3" %}
+            <span aria-hidden="true">…</span>
+        {% endif %}
+    {% endfor %}
+    {% if products.has_next %}
+        <a href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ products.next_page_number }}">下一页</a>
+    {% endif %}
+</nav>
+{% endif %}

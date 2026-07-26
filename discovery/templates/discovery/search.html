@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load static %}
+{# 文件职责：智能找商品的无障碍页面；采集用户主动输入并调用 discovery API，不承载意图解析或商品查询规则。 #}
+
+{% block title %}智能找商品 - ShopLite{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'discovery/search.css' %}">
+{% endblock %}
+
+{% block content %}
+<section
+    class="discovery-page"
+    id="discoveryApp"
+    data-text-url="{% url 'discovery:text-search' %}"
+    data-voice-url="{% url 'discovery:voice-search' %}"
+    data-image-url="{% url 'discovery:image-search' %}"
+    data-product-url-template="{% url 'shop:product_detail' 0 %}"
+    data-image-enabled="{{ image_search_enabled|yesno:'true,false' }}"
+>
+    <header class="discovery-hero">
+        <p class="discovery-eyebrow">简单、清楚、找得到</p>
+        <h1>告诉我您想买什么</h1>
+        <p>
+            可以直接打字，也可以说出用途和预算。系统会提取关键词，在商城数据库中寻找符合条件的商品，
+            并说明为什么推荐。
+        </p>
+    </header>
+
+    <div class="discovery-notice" role="note">
+        <strong>隐私提示：</strong>
+        ShopLite 不保存本页提交的查询、语音或原始图片。语音识别由当前浏览器提供，
+        开始前请确认您同意浏览器的语音服务规则。
+    </div>
+
+    <form class="discovery-panel" id="discoveryTextForm">
+        {% csrf_token %}
+        <label for="discoveryQuery">请描述商品、用途、品牌或预算</label>
+        <div class="discovery-query-row">
+            <textarea
+                id="discoveryQuery"
+                name="query"
+                rows="3"
+                maxlength="500"
+                placeholder="例如：我想买一台声音大、操作简单、1000元以内的手机"
+                required
+            ></textarea>
+            <div class="discovery-primary-actions">
+                <button class="discovery-button discovery-button-primary" type="submit">
+                    查找商品
+                </button>
+                <button
+                    class="discovery-button discovery-button-voice"
+                    id="voiceSearchButton"
+                    type="button"
+                    aria-pressed="false"
+                >
+                    <span aria-hidden="true">🎙</span>
+                    说出需求
+                </button>
+            </div>
+        </div>
+        <p class="discovery-help" id="voiceHelp">
+            语音需要 HTTPS 或本机环境，并由 Chrome、Edge 等支持语音识别的浏览器授权麦克风。
+            识别后会先显示文字，只有您确认并点击“查找商品”才会提交。
+        </p>
+        <div class="discovery-examples" aria-label="查询示例">
+            <span>可以这样说：</span>
+            <button type="button" data-discovery-example="声音大、按键清楚、500元以内的老人机">老人机</button>
+            <button type="button" data-discovery-example="轻便、防滑、适合老人使用的拐杖">防滑拐杖</button>
+            <button type="button" data-discovery-example="大屏幕、语音播报的血压计">语音血压计</button>
+        </div>
+    </form>
+
+    <section class="discovery-panel discovery-image-panel" aria-labelledby="imageSearchHeading">
+        <div>
+            <h2 id="imageSearchHeading">拍照找相似商品</h2>
+            <p>选择一张清晰的商品照片，仅支持 JPG、PNG 或 WebP，最大 2 MB。</p>
+        </div>
+        <form id="discoveryImageForm">
+            <label class="discovery-file-label" for="discoveryImage">选择商品图片</label>
+            <input
+                id="discoveryImage"
+                name="image"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                {% if not image_search_enabled %}disabled{% endif %}
+            >
+            <button
+                class="discovery-button discovery-button-secondary"
+                type="submit"
+                {% if not image_search_enabled %}disabled{% endif %}
+            >
+                识别并查找
+            </button>
+        </form>
+        {% if not image_search_enabled %}
+            <p class="discovery-unavailable">
+                {{ image_provider_status.message|default:"图片识别目前安全停用。" }}
+                TODO（部署）：选择合规的视觉模型服务，实现图片意图 provider，
+                配置 <code>DISCOVERY_IMAGE_INTENT_PROVIDER</code> 后再开放。
+            </p>
+        {% endif %}
+    </section>
+
+    <div class="discovery-status" id="discoveryStatus" role="status" aria-live="polite"></div>
+
+    <section class="discovery-results" id="discoveryResultsSection" aria-labelledby="discoveryResultsHeading" hidden>
+        <div class="discovery-results-heading">
+            <div>
+                <p class="discovery-eyebrow">数据库匹配结果</p>
+                <h2 id="discoveryResultsHeading" tabindex="-1">为您找到的商品</h2>
+            </div>
+            <p id="discoveryIntentSummary"></p>
+        </div>
+        <div class="discovery-grid" id="discoveryResults"></div>
+    </section>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script defer src="{% static 'discovery/search.js' %}"></script>
+{% endblock %}

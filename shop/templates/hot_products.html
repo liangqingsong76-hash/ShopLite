@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 热门商品{% endblock %}
+
+{% block extra_head %}
+<style>
+    .page-banner {
+        background: linear-gradient(135deg, #fff0f0 0%, #ffe8e8 100%);
+        padding: 42px;
+        border-radius: var(--radius-lg);
+        text-align: center;
+        margin-bottom: 28px;
+    }
+    .page-banner h1 { font-size: 30px; margin: 0 0 6px; color: var(--danger); }
+    .page-banner p { color: var(--muted); margin: 0; font-size: 15px; }
+    .hot-tag {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        padding: 3px 10px;
+        background: var(--danger);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 3px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <h1>🔥 热门推荐</h1>
+    <p>精选热销好物，品质之选</p>
+</div>
+
+<div class="product-grid">
+    {% for product in products %}
+        <article class="product-card">
+            <a href="{% url 'shop:product_detail' product.id %}" style="display:block;">
+                <div class="product-image" style="position:relative;">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    {% else %}
+                        <span class="product-fallback"></span>
+                    {% endif %}
+                    <span class="hot-tag">HOT</span>
+                </div>
+                <div class="product-name">{{ product.name }}</div>
+                <div class="product-meta">
+                    <span class="stars">★★★★★</span>
+                    <span>{{ product.rating }}</span>
+                    <span style="color:var(--danger);font-size:11px;font-weight:600;">热卖</span>
+                </div>
+                <div class="price" style="margin-top:4px;">¥{{ product.price }}</div>
+            </a>
+        </article>
+    {% empty %}
+        <div class="empty-note">暂无热门商品</div>
+    {% endfor %}
+</div>
+{% include "partials/product_pagination.html" %}
+{% endblock %}

@@ -1,0 +1,48 @@
+# Docker 构建上下文只保留运行应用所需的源码，避免把密钥、用户数据和本地生成物写入镜像。
+.git/
+.idea/
+.vscode/
+*.iml
+
+# 本地环境配置与密钥：容器通过 Docker Compose 的 env_file 注入。
+.env
+.env.*
+
+# Python、测试和编辑器生成物。
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+
+# 可重新生成的静态文件、运行日志和本地数据库。
+staticfiles/
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
+*.log
+*.pid
+celerybeat-schedule*
+
+# 数据库备份和用户上传文件必须通过独立备份/恢复流程管理，不能烘焙进镜像。
+backups/
+*.sql
+*.sql.gz
+*.dump
+media/
+
+# 其他本地构建产物。
+build/
+dist/
+*.egg-info/
+.DS_Store
+Thumbs.db
+Desktop.ini

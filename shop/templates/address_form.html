@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - {% if edit %}编辑{% else %}新增{% endif %}地址{% endblock %}
+
+{% block extra_head %}
+<style>
+    .addr-form-page { max-width: 560px; margin: 0 auto; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:address_list' %}">收货地址</a><span>&gt;</span>
+    <span>{% if edit %}编辑{% else %}新增{% endif %}地址</span>
+</div>
+
+<div class="addr-form-page">
+    <h1 style="margin:0 0 22px;">{% if edit %}编辑{% else %}新增{% endif %}收货地址</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="field-errors">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="form-group">
+            <label class="form-label">收货人</label>
+            <input class="form-input" name="receiver" type="text" value="{{ form.receiver.value|default:'' }}" placeholder="请输入收货人姓名" maxlength="50" required>{{ form.receiver.errors }}
+        </div>
+        <div class="form-group">
+            <label class="form-label">手机号</label>
+            <input class="form-input" name="phone" type="tel" value="{{ form.phone.value|default:'' }}" placeholder="请输入 11 位手机号" maxlength="20" required>{{ form.phone.errors }}
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">省份</label>
+                <input class="form-input" name="province" type="text" value="{{ form.province.value|default:'' }}" placeholder="省份" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">城市</label>
+                <input class="form-input" name="city" type="text" value="{{ form.city.value|default:'' }}" placeholder="城市" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">区县</label>
+                <input class="form-input" name="district" type="text" value="{{ form.district.value|default:'' }}" placeholder="区县">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">详细地址</label>
+            <input class="form-input" name="detail" type="text" value="{{ form.detail.value|default:'' }}" placeholder="街道、门牌号等" maxlength="255" required>{{ form.detail.errors }}
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-bottom:24px;">
+            <input type="checkbox" name="is_default" id="is_default" {% if form.is_default.value %}checked{% endif %} style="width:18px;height:18px;accent-color:var(--ink);">
+            <label for="is_default" style="font-size:14px;cursor:pointer;">设为默认地址</label>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary" type="submit">保存</button>
+            <a class="btn btn-outline" href="{% url 'shop:address_list' %}">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

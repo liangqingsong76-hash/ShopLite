@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 帮助中心{% endblock %}
+
+{% block extra_head %}
+<style>
+    .page-wrap { max-width: 900px; margin: 0 auto; }
+    .help-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 32px; }
+    .help-card {
+        text-align: center;
+        padding: 24px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+        transition: all var(--transition);
+        cursor: pointer;
+        color: var(--ink);
+        text-decoration: none;
+    }
+    .help-card:hover { border-color: var(--ink); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+    .help-icon { font-size: 32px; margin-bottom: 10px; }
+    .help-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .help-desc { font-size: 12px; color: var(--muted); }
+
+    .faq-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: #fff;
+        margin-bottom: 12px;
+    }
+    .faq-q {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: background var(--transition);
+    }
+    .faq-q:hover { background: #fafaf8; }
+    .faq-q .arrow { font-size: 12px; color: var(--muted); transition: transform 0.2s; }
+    .faq-card.open .faq-q .arrow { transform: rotate(180deg); }
+    .faq-a {
+        display: none;
+        padding: 0 20px 16px;
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.7;
+    }
+    .faq-card.open .faq-a { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
+    <span>帮助中心</span>
+</div>
+
+<div class="page-wrap">
+    <h1 style="margin: 0 0 22px;">帮助中心</h1>
+
+    <div class="help-grid">
+        <a class="help-card" href="{% url 'shop:order_list' %}">
+            <div class="help-icon">📦</div>
+            <div class="help-title">订单查询</div>
+            <div class="help-desc">查看订单状态和物流</div>
+        </a>
+        <div class="help-card">
+            <div class="help-icon">💳</div>
+            <div class="help-title">支付问题</div>
+            <div class="help-desc">支付方式与常见问题</div>
+        </div>
+        <div class="help-card">
+            <div class="help-icon">↩️</div>
+            <div class="help-title">退换货</div>
+            <div class="help-desc">退换货流程与规则</div>
+        </div>
+        <div class="help-card">
+            <div class="help-icon">🎧</div>
+            <div class="help-title">联系客服</div>
+            <div class="help-desc">在线客服 7×24h</div>
+        </div>
+    </div>
+
+    <h2 style="font-size:18px;margin:28px 0 16px;">常见问题</h2>
+
+    <div class="faq-card" onclick="this.classList.toggle('open')">
+        <div class="faq-q"><span>下单后多久可以发货？</span><span class="arrow">▼</span></div>
+        <div class="faq-a">一般情况下，付款成功后 24 小时内发货。如遇大促活动期间，发货时间可能会有延迟，请您耐心等待。发货后您可以在「我的订单」中查看物流信息。</div>
+    </div>
+
+    <div class="faq-card" onclick="this.classList.toggle('open')">
+        <div class="faq-q"><span>如何申请退换货？</span><span class="arrow">▼</span></div>
+        <div class="faq-a">在「我的订单」中找到对应订单，点击「申请售后」即可发起退换货申请。我们支持 7 天无理由退换货（商品完好、不影响二次销售），审核通过后会有专人联系您处理。</div>
+    </div>
+
+    <div class="faq-card" onclick="this.classList.toggle('open')">
+        <div class="faq-q"><span>优惠券如何使用？</span><span class="arrow">▼</span></div>
+        <div class="faq-a">在结算页面会自动展示您可用的优惠券。满足条件的订单会自动抵扣，无需手动选择。您可以在「优惠券」页面查看所有已领取的优惠券及使用条件。</div>
+    </div>
+
+    <div class="faq-card" onclick="this.classList.toggle('open')">
+        <div class="faq-q"><span>如何修改收货地址？</span><span class="arrow">▼</span></div>
+        <div class="faq-a">您可以在「收货地址」页面添加、编辑或删除地址。在提交订单前，也可以在结算页面选择或新增收货地址。已支付的订单无法修改地址，请联系客服处理。</div>
+    </div>
+
+    <div class="faq-card" onclick="this.classList.toggle('open')">
+        <div class="faq-q"><span>支付方式有哪些？</span><span class="arrow">▼</span></div>
+        <div class="faq-a">目前支持微信支付。我们正在接入更多支付方式，敬请期待。</div>
+    </div>
+
+    <div class="faq-card" onclick="this.classList.toggle('open')">
+        <div class="faq-q"><span>如何联系客服？</span><span class="arrow">▼</span></div>
+        <div class="faq-a">您可以通过「消息中心」联系在线客服，或拨打客服热线 400-888-8888（服务时间：9:00-21:00）。我们承诺 7×24 小时为您提供贴心服务。</div>
+    </div>
+</div>
+{% endblock %}

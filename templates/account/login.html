@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopLite - 登录</title>
+    <style>
+        {% include "account/auth_base.css" %}
+    </style>
+</head>
+<body>
+    <header class="auth-topbar">
+        <a class="auth-brand" href="{% url 'shop:home' %}">
+            <span class="brand-mark">S</span>
+            <span>ShopLite</span>
+        </a>
+        <nav class="auth-links" aria-label="账号页快捷入口">
+            <a href="{% url 'shop:home' %}">返回首页</a>
+            <a href="{% url 'shop:help' %}">帮助中心</a>
+            <a href="{% url 'account_signup' %}">免费注册</a>
+        </nav>
+    </header>
+
+    <main class="auth-page">
+        <section class="auth-shell">
+            <div class="auth-showcase">
+                <div class="showcase-kicker">会员专享 · 每日上新</div>
+                <div class="showcase-copy">
+                    <h1>登录后查看你的专属好价</h1>
+                    <p>收藏、购物车、待付款订单和优惠券都会自动同步，继续完成你的品质购物清单。</p>
+                </div>
+                <div class="deal-board" aria-hidden="true">
+                    <div class="deal-card"><strong>¥30</strong><span>满 299 立减</span></div>
+                    <div class="deal-card"><strong>48h</strong><span>热卖商品极速发货</span></div>
+                    <div class="deal-card"><strong>100%</strong><span>订单安全保障</span></div>
+                    <div class="deal-card"><strong>7天</strong><span>无理由退换</span></div>
+                </div>
+                <div class="showcase-stats">
+                    <div class="showcase-stat"><strong>官方正品</strong><span>精选供应链</span></div>
+                    <div class="showcase-stat"><strong>售后无忧</strong><span>快速响应</span></div>
+                    <div class="showcase-stat"><strong>价格透明</strong><span>优惠实时可见</span></div>
+                </div>
+            </div>
+
+            <div class="auth-panel">
+                <div class="panel-switch">还没有账号？ <a href="{% url 'account_signup' %}">立即注册</a></div>
+
+                <div class="auth-form">
+                    <h2>欢迎回来</h2>
+                    <p class="subtitle">使用用户名、邮箱或手机号登录 ShopLite</p>
+
+                    <div class="login-tabs login-tabs-three" role="tablist" aria-label="登录方式">
+                        <button class="login-tab active" type="button" data-login-tab="password">密码登录</button>
+                        <button class="login-tab" type="button" data-login-tab="phone">手机快捷登录</button>
+                        <button class="login-tab" type="button" data-login-tab="register">手机注册</button>
+                    </div>
+
+                    {% if messages %}
+                        <div class="form-error" role="alert">
+                            {% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div id="phoneLoginMessage" class="form-error" style="display:none;"></div>
+
+                    {% if form.non_field_errors %}
+                        <div class="form-error">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <form id="passwordLoginForm" method="post" action="{% url 'account_login' %}" data-login-panel="password">
+                        {% csrf_token %}
+                        {% if redirect_field_value %}
+                            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                        {% endif %}
+
+                        <div class="field">
+                            <label class="field-label" for="id_login">账号</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">👤</span>
+                                <input id="id_login" name="login" type="text" autocomplete="username" placeholder="手机号 / 邮箱 / 用户名" required>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="id_password">密码</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">🔒</span>
+                                <input id="id_password" name="password" type="password" autocomplete="current-password" placeholder="请输入登录密码" required>
+                            </div>
+                        </div>
+
+                        <div class="options-row">
+                            <label><input name="remember" type="checkbox"> 记住我</label>
+                            <a href="{% url 'account_reset_password' %}">忘记密码？</a>
+                        </div>
+
+                        <button class="primary-submit" type="submit">登录</button>
+                    </form>
+
+                    <form id="phoneLoginForm" data-login-panel="phone" style="display:none;">
+                        {% csrf_token %}
+
+                        <div class="field">
+                            <label class="field-label" for="id_phone_login">手机号</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">☎</span>
+                                <input id="id_phone_login" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="请输入 11 位手机号" required>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="id_phone_code">短信验证码</label>
+                            <div class="verify-row">
+                                <div class="input-wrap">
+                                    <span class="input-icon">#</span>
+                                    <input id="id_phone_code" name="code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="请输入验证码" required>
+                                </div>
+                                <button id="sendPhoneCodeBtn" class="verify-btn" type="button">获取验证码</button>
+                            </div>
+                        </div>
+
+                        <button class="primary-submit" type="submit">手机号登录</button>
+                    </form>
+
+                    <form id="phoneRegisterForm" data-login-panel="register" style="display:none;">
+                        {% csrf_token %}
+
+                        <div class="field">
+                            <label class="field-label" for="id_register_phone">手机号</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">☎</span>
+                                <input id="id_register_phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="请输入 11 位手机号" required>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="id_register_code">短信验证码</label>
+                            <div class="verify-row">
+                                <div class="input-wrap">
+                                    <span class="input-icon">#</span>
+                                    <input id="id_register_code" name="code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="请输入验证码" required>
+                                </div>
+                                <button id="sendRegisterCodeBtn" class="verify-btn" type="button">获取验证码</button>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="id_register_password">登录密码</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">🔒</span>
+                                <input id="id_register_password" name="password" type="password" autocomplete="new-password" placeholder="请设置登录密码" required>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="id_register_password_confirm">确认密码</label>
+                            <div class="input-wrap">
+                                <span class="input-icon">🔒</span>
+                                <input id="id_register_password_confirm" name="password_confirm" type="password" autocomplete="new-password" placeholder="请再次输入密码" required>
+                            </div>
+                        </div>
+
+                        <button class="primary-submit" type="submit">注册并登录</button>
+                    </form>
+
+                    <div class="social-divider">其他登录方式</div>
+                    <div class="social-grid">
+                        <button type="button" disabled title="功能暂未开放">微信（暂未开放）</button>
+                        <button type="button" disabled title="功能暂未开放">支付宝（暂未开放）</button>
+                        <button type="button" data-open-phone-login>短信登录</button>
+                    </div>
+
+                    <div class="agreement">
+                        登录即表示您同意 ShopLite 的 <a href="#">用户协议</a> 和 <a href="#">隐私政策</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script>
+        (function () {
+            const tabs = document.querySelectorAll("[data-login-tab]");
+            const panels = document.querySelectorAll("[data-login-panel]");
+            const passwordForm = document.getElementById("passwordLoginForm");
+            const phoneForm = document.getElementById("phoneLoginForm");
+            const registerForm = document.getElementById("phoneRegisterForm");
+            const loginInput = document.getElementById("id_login");
+            const passwordInput = document.getElementById("id_password");
+            const phoneInput = document.getElementById("id_phone_login");
+            const codeInput = document.getElementById("id_phone_code");
+            const sendBtn = document.getElementById("sendPhoneCodeBtn");
+            const registerPhoneInput = document.getElementById("id_register_phone");
+            const registerCodeInput = document.getElementById("id_register_code");
+            const registerPasswordInput = document.getElementById("id_register_password");
+            const registerPasswordConfirmInput = document.getElementById("id_register_password_confirm");
+            const sendRegisterBtn = document.getElementById("sendRegisterCodeBtn");
+            const message = document.getElementById("phoneLoginMessage");
+            const countdownTimers = new Map();
+
+            function csrfToken() {
+                const input = document.querySelector("input[name='csrfmiddlewaretoken']");
+                return input ? input.value : "";
+            }
+
+            function showMessage(text) {
+                if (!message) return;
+                message.textContent = text;
+                message.style.display = text ? "" : "none";
+            }
+
+            function switchTab(name) {
+                tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.loginTab === name));
+                panels.forEach((panel) => {
+                    panel.style.display = panel.dataset.loginPanel === name ? "" : "none";
+                });
+                showMessage("");
+            }
+
+            async function postJson(url, payload) {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || "请求失败，请稍后再试");
+                }
+                return data;
+            }
+
+            function startCountdown(button, seconds) {
+                let remaining = seconds;
+                button.disabled = true;
+                button.textContent = remaining + "秒";
+                clearInterval(countdownTimers.get(button));
+                const timer = setInterval(() => {
+                    remaining -= 1;
+                    button.textContent = remaining + "秒";
+                    if (remaining <= 0) {
+                        clearInterval(timer);
+                        countdownTimers.delete(button);
+                        button.disabled = false;
+                        button.textContent = "获取验证码";
+                    }
+                }, 1000);
+                countdownTimers.set(button, timer);
+            }
+
+            tabs.forEach((tab) => {
+                tab.addEventListener("click", () => switchTab(tab.dataset.loginTab));
+            });
+            document.querySelectorAll("[data-open-phone-login]").forEach((button) => {
+                button.addEventListener("click", () => switchTab("phone"));
+            });
+
+            if (sendBtn) {
+                sendBtn.addEventListener("click", async () => {
+                    showMessage("");
+                    try {
+                        await postJson("/api/auth/phone/code/", {
+                            phone: phoneInput.value,
+                            purpose: "login",
+                        });
+                        startCountdown(sendBtn, 60);
+                        showMessage("验证码已发送，开发环境请在运行服务的控制台查看。");
+                    } catch (error) {
+                        showMessage(error.message);
+                    }
+                });
+            }
+
+            if (sendRegisterBtn) {
+                sendRegisterBtn.addEventListener("click", async () => {
+                    showMessage("");
+                    try {
+                        await postJson("/api/auth/phone/code/", {
+                            phone: registerPhoneInput.value,
+                            purpose: "register",
+                        });
+                        startCountdown(sendRegisterBtn, 60);
+                        showMessage("验证码已发送，开发环境请在运行服务的控制台查看。");
+                    } catch (error) {
+                        showMessage(error.message);
+                    }
+                });
+            }
+
+            if (passwordForm) {
+                passwordForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    showMessage("");
+                    try {
+                        const data = await postJson("/api/auth/password/login/", {
+                            login: loginInput.value,
+                            password: passwordInput.value,
+                        });
+                        window.location.href = data.redirect_url || "/";
+                    } catch (error) {
+                        showMessage(error.message);
+                    }
+                });
+            }
+
+            if (phoneForm) {
+                phoneForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    showMessage("");
+                    try {
+                        const data = await postJson("/api/auth/phone/login/", {
+                            phone: phoneInput.value,
+                            code: codeInput.value,
+                        });
+                        window.location.href = data.redirect_url || "/";
+                    } catch (error) {
+                        showMessage(error.message);
+                    }
+                });
+            }
+
+            if (registerForm) {
+                registerForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    showMessage("");
+                    try {
+                        const data = await postJson("/api/auth/phone/register/", {
+                            phone: registerPhoneInput.value,
+                            code: registerCodeInput.value,
+                            password: registerPasswordInput.value,
+                            password_confirm: registerPasswordConfirmInput.value,
+                        });
+                        window.location.href = data.redirect_url || "/";
+                    } catch (error) {
+                        showMessage(error.message);
+                    }
+                });
+            }
+        }());
+    </script>
+</body>
+</html>

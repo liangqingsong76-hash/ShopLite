@@ -1,0 +1,8 @@
+# 开发与调试环境依赖。
+# 安装方式：pip install -r requirements-dev.txt
+# 本文件会先安装与生产环境一致的运行时依赖，再额外安装只在 DEBUG=True 下使用的工具。
+-r requirements.txt
+
+# Django Debug Toolbar 由 settings.py 在 DEBUG=True 时按“已安装才启用”的方式加载；
+# 不属于生产镜像依赖。
+django-debug-toolbar==4.4.6

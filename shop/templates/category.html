@@ -1,0 +1,799 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - {{ page_title|default:"商品分类" }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .cat-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 32px;
+        transition: opacity 0.16s ease;
+    }
+    .cat-layout.category-loading { opacity: 0.58; pointer-events: none; cursor: wait; }
+
+    .cat-sidebar {
+        background: #fafaf9;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+    }
+    .cat-sidebar h3 { margin: 0 0 16px; font-size: 16px; }
+
+    .sidebar-cat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--ink);
+        text-decoration: none;
+    }
+    .sidebar-cat:visited { color: var(--ink); }
+    .sidebar-cat:hover,
+    .sidebar-cat.active,
+    .sidebar-cat.active:visited {
+        background: #fff4ef;
+        color: var(--accent);
+    }
+    .sidebar-cat.active { box-shadow: inset 3px 0 0 var(--accent); font-weight: 700; }
+    .sidebar-cat .arrow { font-size: 10px; transition: transform 0.2s; }
+    .sidebar-cat.active .arrow { transform: rotate(90deg); }
+
+    .sidebar-subs {
+        padding: 4px 0 4px 32px;
+        margin-bottom: 4px;
+        display: none;
+    }
+    .sidebar-subs.show { display: block; }
+    .sidebar-sub {
+        display: block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: var(--muted);
+        text-decoration: none;
+        transition: all 0.15s;
+    }
+    .sidebar-sub:visited { color: var(--muted); }
+    .sidebar-sub:hover,
+    .sidebar-sub.active,
+    .sidebar-sub.active:visited { color: var(--accent); background: #fff4ef; }
+    .sidebar-sub.active { font-weight: 700; }
+
+    .cat-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .cat-toolbar h2 { margin: 0; font-size: 22px; white-space: nowrap; }
+    .cat-count { color: var(--muted); font-size: 14px; white-space: nowrap; }
+    .cat-sort { display: flex; gap: 4px; margin-left: auto; }
+    .sort-pill {
+        padding: 7px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid var(--line);
+        background: #fff;
+        cursor: pointer;
+        color: var(--ink);
+        transition: all 0.15s;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .sort-pill:hover { border-color: var(--ink); }
+    .sort-pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+    .active-filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .active-filters-label {
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 500;
+    }
+    .filter-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px 4px 14px;
+        border-radius: 20px;
+        background: rgba(59,130,246,0.1);
+        color: var(--primary);
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .filter-tag-remove {
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1;
+        transition: opacity 0.15s;
+    }
+    .filter-tag-remove:hover { opacity: 0.6; }
+    .filter-clear-all {
+        font-size: 13px;
+        color: var(--muted);
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .filter-clear-all:hover { color: var(--danger); }
+
+    .filter-section { margin-bottom: 14px; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+    .filter-section:last-child { border-bottom: 0; }
+    .filter-section-label {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .filter-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+    .f-pill {
+        padding: 4px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        border: 1px solid var(--line);
+        background: #fff;
+        cursor: pointer;
+        transition: all 0.15s;
+        color: var(--ink);
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .f-pill:hover { border-color: var(--ink); }
+    .f-pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+    .price-input-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+    }
+    .price-input-row input {
+        width: 90px;
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-size: 13px;
+        outline: none;
+    }
+    .price-input-row input:focus { border-color: var(--ink); }
+    .price-input-row button {
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 6px;
+        border: 1px solid var(--ink);
+        background: #fff;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.15s;
+    }
+    .price-input-row button:hover { background: var(--ink); color: #fff; }
+
+    .product-card {
+        position: relative;
+        min-width: 0;
+        border-radius: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .product-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+
+    .product-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 2;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+    }
+    .badge-new { background: var(--primary); }
+    .badge-hot { background: var(--danger); }
+    .badge-rec { background: var(--accent); }
+
+    .product-image-wrap {
+        position: relative;
+        aspect-ratio: 1.08 / 1;
+        border-radius: 10px;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 42%, rgba(255,255,255,0.8), rgba(255,255,255,0) 32%),
+                    linear-gradient(135deg, #eee8df, #f8f6f2);
+        display: grid;
+        place-items: center;
+    }
+    .product-image-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .quick-add {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        cursor: pointer;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .product-card:hover .quick-add { opacity: 1; transform: translateY(0); }
+    .quick-add:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+    .product-info { padding: 10px 4px 0; }
+    .product-title {
+        font-weight: 600;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 6px;
+        color: var(--ink);
+    }
+    .product-tags { display: flex; gap: 6px; margin-bottom: 8px; }
+    .product-tag {
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+    }
+    .product-price-row { display: flex; align-items: center; justify-content: space-between; }
+    .product-price { font-size: 17px; font-weight: 800; color: var(--danger); }
+    .product-old-price { font-size: 12px; color: #9a9a9a; text-decoration: line-through; margin-left: 8px; }
+    .product-sales { font-size: 12px; color: var(--muted); }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--muted);
+    }
+    .empty-state-icon {
+        font-size: 56px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+    .empty-state p { margin: 8px 0; font-size: 15px; }
+    .empty-state a { color: var(--primary); font-weight: 600; }
+
+    .brand-card {
+        display: block;
+        text-align: center;
+        padding: 28px 20px;
+        border-radius: 12px;
+        background: #fafaf9;
+        border: 1px solid var(--line);
+        transition: all 0.25s;
+        text-decoration: none;
+        color: var(--ink);
+    }
+    .brand-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-3px); }
+    .brand-icon-block {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 14px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #fff, #f0f0f0);
+        display: grid;
+        place-items: center;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--accent);
+    }
+    .brand-card-name { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .brand-card-count { font-size: 13px; color: var(--muted); }
+
+    @media (max-width: 1100px) {
+        .cat-layout { grid-template-columns: 1fr; }
+        .cat-sidebar { position: static; max-height: none; margin-bottom: 20px; }
+        .cat-toolbar { flex-wrap: wrap; }
+        .cat-sort { margin-left: 0; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="crumb">
+    {% for item in breadcrumbs %}
+        {% if item.url %}
+            {% if '/' in item.url %}
+                <a href="{{ item.url }}">{{ item.name }}</a>
+            {% else %}
+                <a href="{% url item.url %}">{{ item.name }}</a>
+            {% endif %}
+        {% else %}
+            <span>{{ item.name }}</span>
+        {% endif %}
+        {% if not forloop.last %}<span>&gt;</span>{% endif %}
+    {% endfor %}
+</div>
+
+{% if current_filter == "brand" %}
+
+<h2 style="font-size: 26px; margin: 16px 0 28px;">品牌馆</h2>
+<div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px;">
+    {% for brand in brands %}
+        <a class="brand-card" href="{% url 'shop:category' %}?filter=brand&brand={{ brand.name }}">
+            <div class="brand-icon-block">{{ brand.name|first }}</div>
+            <div class="brand-card-name">{{ brand.name }}</div>
+            <div class="brand-card-count">{{ brand.count }} 件商品</div>
+        </a>
+    {% empty %}
+        <div class="empty-state"><div class="empty-state-icon">B</div><p>暂无品牌数据</p></div>
+    {% endfor %}
+</div>
+
+<h3 style="font-size: 18px; margin: 32px 0 18px;">品牌精选</h3>
+<div class="product-grid" id="productList">
+            {% for product in products %}
+                <article class="product-card">
+                    <a href="{% url 'shop:product_detail' product.id %}" style="display: block; color: inherit; text-decoration: none;">
+                        <div class="product-image-wrap">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                            {% else %}
+                                <span class="product-fallback"></span>
+                            {% endif %}
+                            <span class="quick-add" onclick="event.preventDefault(); quickAddToCart({{ product.id }}, this)" title="加入购物车">+</span>
+                        </div>
+                        <div class="product-info">
+                            <div class="product-title">{{ product.name }}</div>
+                            <div class="product-tags">
+                                <span class="product-tag">{{ product.rating }}分</span>
+                                <span class="product-tag">已售{{ product.sales }}</span>
+                            </div>
+                            <div class="product-price-row">
+                                <span class="product-price">¥{{ product.price }}</span>
+                                {% if product.original_price and product.original_price > product.price %}
+                                    <span class="product-old-price">¥{{ product.original_price }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </article>
+            {% empty %}
+                <div class="empty-state"><div class="empty-state-icon">B</div><p>暂无品牌商品</p></div>
+            {% endfor %}
+        </div>
+
+{% else %}
+
+<section class="cat-layout" id="categoryApp">
+    <aside class="cat-sidebar">
+        <h3>全部分类</h3>
+        {% for category in categories %}
+            <div>
+                <a class="sidebar-cat{% if category.name == active_category %} active{% endif %}"
+                   href="{% url 'shop:category' %}?category={{ category.name|urlencode }}">
+                    <span>{{ category.name }}</span>
+                    <span class="arrow">›</span>
+                </a>
+                {% if category.subcategories %}
+                    <div class="sidebar-subs{% if category.name == active_category %} show{% endif %}">
+                        <a class="sidebar-sub{% if category.name == active_category and not active_subcategory %} active{% endif %}"
+                           href="{% url 'shop:category' %}?category={{ category.name|urlencode }}">全部</a>
+                        {% for child in category.subcategories %}
+                            <a class="sidebar-sub{% if category.name == active_category and child.name == active_subcategory %} active{% endif %}"
+                               href="{% url 'shop:category' %}?category={{ category.name|urlencode }}&subcategory={{ child.name|urlencode }}">
+                                {{ child.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </aside>
+
+    <div>
+        <div class="cat-toolbar">
+            <h2>{{ page_title|default:"全部商品" }}</h2>
+            <span class="cat-count" id="productCount">共 <strong>{{ products|length }}</strong> 件</span>
+            <div class="cat-sort">
+                <a class="sort-pill{% if not sort_by %} active{% endif %}" href="#" data-sort="">综合</a>
+                <a class="sort-pill{% if sort_by == 'sales' %} active{% endif %}" href="#" data-sort="sales">销量</a>
+                <a class="sort-pill{% if sort_by == 'price_asc' %} active{% endif %}" href="#" data-sort="price_asc">价格↑</a>
+                <a class="sort-pill{% if sort_by == 'price_desc' %} active{% endif %}" href="#" data-sort="price_desc">价格↓</a>
+                <a class="sort-pill{% if sort_by == 'rating' %} active{% endif %}" href="#" data-sort="rating">评价</a>
+            </div>
+        </div>
+
+        <div class="active-filters" id="activeFilters">
+            <span class="active-filters-label">当前筛选：</span>
+            {% if active_category %}
+                <span class="filter-tag">
+                    {% if active_subcategory %}{{ active_subcategory }}{% else %}{{ active_category }}{% endif %}
+                    <span class="filter-tag-remove" data-remove="category">&times;</span>
+                </span>
+            {% endif %}
+            {% if brand_filter %}
+                <span class="filter-tag">
+                    {{ brand_filter }}
+                    <span class="filter-tag-remove" data-remove="brand">&times;</span>
+                </span>
+            {% endif %}
+            {% if price_min or price_max %}
+                <span class="filter-tag">
+                    价格: {% if price_min %}¥{{ price_min }}{% else %}0{% endif %}-{% if price_max %}¥{{ price_max }}{% else %}不限{% endif %}
+                    <span class="filter-tag-remove" data-remove="price">&times;</span>
+                </span>
+            {% endif %}
+            {% if keyword %}
+                <span class="filter-tag">
+                    搜索: {{ keyword }}
+                    <span class="filter-tag-remove" data-remove="q">&times;</span>
+                </span>
+            {% endif %}
+            {% if active_category or brand_filter or price_min or price_max or keyword %}
+                <a class="filter-clear-all" href="{% url 'shop:category' %}" id="clearAllFilters">清除全部</a>
+            {% endif %}
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-section-label">品牌</div>
+            <div class="filter-pills" id="brandPills">
+                <a class="f-pill{% if not brand_filter %} active{% endif %}" href="#" data-brand="">全部</a>
+                {% for brand in brands %}
+                    <a class="f-pill{% if brand.name == brand_filter %} active{% endif %}" href="#" data-brand="{{ brand.name }}">{{ brand.name }}</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-section-label">价格区间</div>
+            <div class="filter-pills" id="pricePills">
+                <a class="f-pill{% if not price_min and not price_max %} active{% endif %}" href="#" data-price-min="" data-price-max="">全部</a>
+                <a class="f-pill{% if price_min == '0' and price_max == '99' %} active{% endif %}" href="#" data-price-min="0" data-price-max="99">0-99元</a>
+                <a class="f-pill{% if price_min == '100' and price_max == '199' %} active{% endif %}" href="#" data-price-min="100" data-price-max="199">100-199元</a>
+                <a class="f-pill{% if price_min == '200' and price_max == '299' %} active{% endif %}" href="#" data-price-min="200" data-price-max="299">200-299元</a>
+                <a class="f-pill{% if price_min == '300' and price_max == '499' %} active{% endif %}" href="#" data-price-min="300" data-price-max="499">300-499元</a>
+                <a class="f-pill{% if price_min == '500' %} active{% endif %}" href="#" data-price-min="500" data-price-max="">500元以上</a>
+            </div>
+            <form class="price-input-row" id="priceCustomForm">
+                <input type="number" id="priceMinInput" placeholder="¥最低价" value="{{ price_min }}">
+                <span style="color: var(--muted);">-</span>
+                <input type="number" id="priceMaxInput" placeholder="¥最高价" value="{{ price_max }}">
+                <button type="submit">确定</button>
+            </form>
+        </div>
+
+        <div class="product-grid" id="productList">
+            {% for product in products %}
+                <article class="product-card">
+                    <a href="{% url 'shop:product_detail' product.id %}" style="display: block; color: inherit; text-decoration: none;">
+                        <div class="product-image-wrap">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                            {% else %}
+                                <span class="product-fallback"></span>
+                            {% endif %}
+                            {% if product.is_new %}
+                                <span class="product-badge badge-new">NEW</span>
+                            {% elif product.is_hot %}
+                                <span class="product-badge badge-hot">HOT</span>
+                            {% endif %}
+                            <span class="quick-add" onclick="event.preventDefault(); quickAddToCart({{ product.id }}, this)" title="加入购物车">+</span>
+                        </div>
+                        <div class="product-info">
+                            <div class="product-title">{{ product.name }}</div>
+                            <div class="product-tags">
+                                <span class="product-tag">{{ product.rating }}分</span>
+                                <span class="product-tag">已售{{ product.sales }}</span>
+                            </div>
+                            <div class="product-price-row">
+                                <span>
+                                    <span class="product-price">¥{{ product.price }}</span>
+                                    {% if product.original_price and product.original_price > product.price %}
+                                        <span class="product-old-price">¥{{ product.original_price }}</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </article>
+            {% empty %}
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-state-icon">?</div>
+                    <p>暂无匹配的商品</p>
+                    <p>试试调整筛选条件，或 <a href="{% url 'shop:category' %}">查看全部商品</a></p>
+                </div>
+            {% endfor %}
+        </div>
+        {% include "partials/product_pagination.html" %}
+    </div>
+</section>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    var categoryPath = '{% url "shop:category" %}';
+    var activeRequest = null;
+
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
+    function categoryApp() {
+        return document.getElementById('categoryApp');
+    }
+
+    function buildURL(overrides) {
+        var url = new URL(window.location.href);
+        url.pathname = categoryPath;
+        url.hash = '';
+        for (var k in overrides) {
+            if (overrides.hasOwnProperty(k)) {
+                if (overrides[k] === '' || overrides[k] === null || overrides[k] === undefined) {
+                    url.searchParams.delete(k);
+                } else {
+                    url.searchParams.set(k, overrides[k]);
+                }
+            }
+        }
+        return url.pathname + url.search;
+    }
+
+    function restoreScroll(x, y, app) {
+        var shell = document.querySelector('.page-shell');
+        var previousOverflowAnchor = shell ? shell.style.overflowAnchor : '';
+        if (shell) shell.style.overflowAnchor = 'none';
+        window.scrollTo(x, y);
+        requestAnimationFrame(function() {
+            window.scrollTo(x, y);
+            requestAnimationFrame(function() {
+                window.scrollTo(x, y);
+                setTimeout(function() {
+                    window.scrollTo(x, y);
+                    if (app) app.style.minHeight = '';
+                    if (shell) shell.style.overflowAnchor = previousOverflowAnchor;
+                }, 60);
+            });
+        });
+    }
+
+    function setLoading(isLoading) {
+        var app = categoryApp();
+        if (!app) return;
+        app.classList.toggle('category-loading', isLoading);
+        if (isLoading) {
+            app.setAttribute('aria-busy', 'true');
+        } else {
+            app.removeAttribute('aria-busy');
+        }
+    }
+
+    async function loadCategory(target, options) {
+        options = options || {};
+        var currentApp = categoryApp();
+        if (!currentApp) {
+            window.location.assign(target);
+            return;
+        }
+
+        var targetURL = new URL(target, window.location.href);
+        var scrollX = options.scrollX === undefined ? window.scrollX : options.scrollX;
+        var scrollY = options.scrollY === undefined ? window.scrollY : options.scrollY;
+
+        if (activeRequest) activeRequest.abort();
+        activeRequest = new AbortController();
+        var requestController = activeRequest;
+        setLoading(true);
+
+        try {
+            var response = await fetch(targetURL.href, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: requestController.signal
+            });
+            if (!response.ok) throw new Error('Category request failed');
+
+            var html = await response.text();
+            var nextDocument = new DOMParser().parseFromString(html, 'text/html');
+            var nextApp = nextDocument.getElementById('categoryApp');
+            if (!nextApp) {
+                window.location.assign(response.url || targetURL.href);
+                return;
+            }
+
+            nextApp.style.minHeight = currentApp.getBoundingClientRect().height + 'px';
+            nextApp.classList.remove('category-loading');
+            nextApp.removeAttribute('aria-busy');
+            currentApp.replaceWith(nextApp);
+
+            var nextTitle = nextDocument.querySelector('title');
+            if (nextTitle) document.title = nextTitle.textContent;
+
+            var nextSearchInput = nextDocument.getElementById('searchInput');
+            var searchInput = document.getElementById('searchInput');
+            if (nextSearchInput && searchInput) searchInput.value = nextSearchInput.value;
+
+            if (options.push !== false) {
+                history.replaceState(
+                    Object.assign({}, history.state || {}, { categoryScrollX: scrollX, categoryScrollY: scrollY }),
+                    '',
+                    window.location.href
+                );
+                history.pushState(
+                    { categoryAjax: true, categoryScrollX: scrollX, categoryScrollY: scrollY },
+                    '',
+                    targetURL.pathname + targetURL.search
+                );
+            }
+            restoreScroll(scrollX, scrollY, nextApp);
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                window.location.assign(targetURL.href);
+            }
+        } finally {
+            if (activeRequest === requestController) {
+                activeRequest = null;
+                setLoading(false);
+            }
+        }
+    }
+
+    function navigateTo(overrides) {
+        loadCategory(buildURL(overrides));
+    }
+
+    document.addEventListener('click', function(event) {
+        var app = event.target.closest('#categoryApp');
+        if (!app) return;
+
+        var directLink = event.target.closest('.sidebar-cat, .sidebar-sub, #clearAllFilters, .empty-state a');
+        if (directLink && directLink.href && new URL(directLink.href).pathname === categoryPath) {
+            event.preventDefault();
+            loadCategory(directLink.href);
+            return;
+        }
+
+        var sortPill = event.target.closest('.sort-pill');
+        if (sortPill) {
+            event.preventDefault();
+            navigateTo({ sort_by: sortPill.getAttribute('data-sort') });
+            return;
+        }
+
+        var brandPill = event.target.closest('#brandPills .f-pill');
+        if (brandPill) {
+            event.preventDefault();
+            navigateTo({ brand: brandPill.getAttribute('data-brand') });
+            return;
+        }
+
+        var pricePill = event.target.closest('#pricePills .f-pill');
+        if (pricePill) {
+            event.preventDefault();
+            navigateTo({
+                price_min: pricePill.getAttribute('data-price-min'),
+                price_max: pricePill.getAttribute('data-price-max')
+            });
+            return;
+        }
+
+        var removeButton = event.target.closest('.filter-tag-remove');
+        if (removeButton) {
+            event.preventDefault();
+            var removeKey = removeButton.getAttribute('data-remove');
+            var overrides = {};
+            if (removeKey === 'category') {
+                overrides = { category: '', subcategory: '' };
+            } else if (removeKey === 'brand') {
+                overrides = { brand: '' };
+            } else if (removeKey === 'price') {
+                overrides = { price_min: '', price_max: '' };
+            } else if (removeKey === 'q') {
+                overrides = { q: '' };
+            }
+            navigateTo(overrides);
+        }
+    });
+
+    document.addEventListener('submit', function(event) {
+        if (event.target.id === 'priceCustomForm') {
+            event.preventDefault();
+            var minInput = document.getElementById('priceMinInput');
+            var maxInput = document.getElementById('priceMaxInput');
+            navigateTo({
+                price_min: minInput ? minInput.value.trim() : '',
+                price_max: maxInput ? maxInput.value.trim() : ''
+            });
+            return;
+        }
+
+        if (event.target.id === 'searchForm' && categoryApp()) {
+            event.preventDefault();
+            var searchInput = document.getElementById('searchInput');
+            var query = searchInput ? searchInput.value.trim() : '';
+            loadCategory(categoryPath + (query ? '?q=' + encodeURIComponent(query) : ''));
+        }
+    });
+
+    window.addEventListener('popstate', function(event) {
+        if (window.location.pathname !== categoryPath || !categoryApp()) {
+            window.location.reload();
+            return;
+        }
+        var state = event.state || {};
+        loadCategory(window.location.href, {
+            push: false,
+            scrollX: state.categoryScrollX === undefined ? window.scrollX : state.categoryScrollX,
+            scrollY: state.categoryScrollY === undefined ? window.scrollY : state.categoryScrollY
+        });
+    });
+
+    if (!history.state || !history.state.categoryAjax) {
+        history.replaceState(
+            Object.assign({}, history.state || {}, {
+                categoryAjax: true,
+                categoryScrollX: window.scrollX,
+                categoryScrollY: window.scrollY
+            }),
+            '',
+            window.location.href
+        );
+    }
+
+    window.quickAddToCart = function(productId, el) {
+        var fd = new FormData();
+        fd.append('csrfmiddlewaretoken', getCategoryCSRFToken());
+        fd.append('quantity', '1');
+        var originalText = el.textContent;
+        el.textContent = '...';
+        el.style.pointerEvents = 'none';
+        fetch('/cart/add/' + productId + '/', {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function() {
+            el.textContent = '✓';
+            setTimeout(function() {
+                el.textContent = originalText;
+                el.style.pointerEvents = '';
+            }, 1200);
+        }).catch(function() {
+            el.textContent = originalText;
+            el.style.pointerEvents = '';
+        });
+    };
+
+    window.getCategoryCSRFToken = function() {
+        var input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input) return input.value;
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var c = cookies[i].trim();
+            if (c.indexOf('csrftoken=') === 0) return c.substring(10);
+        }
+        return '';
+    };
+})();
+</script>
+{% endblock %}

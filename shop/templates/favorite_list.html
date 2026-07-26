@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}ShopLite - 我的收藏{% endblock %}
+
+{% block extra_head %}
+<style>
+    .fav-page { max-width: 1200px; margin: 0 auto; }
+    .fav-empty { text-align: center; padding: 64px 20px; color: var(--muted); }
+    .fav-empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.3; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crumb">
+    <a href="{% url 'shop:home' %}">首页</a><span>&gt;</span>
+    <a href="{% url 'shop:profile' %}">个人中心</a><span>&gt;</span>
+    <span>我的收藏</span>
+</div>
+
+<div class="fav-page">
+    <h1 style="margin:0 0 24px;">我的收藏（{{ favorites|length }}）</h1>
+
+    {% if favorites %}
+        <div class="product-grid">
+            {% for fav in favorites %}
+                <article class="product-card">
+                    <a href="{% url 'shop:product_detail' fav.product.id %}" style="display: block;">
+                        <div class="product-image">
+                            {% if fav.product.image %}
+                                <img src="{{ fav.product.image.url }}" alt="{{ fav.product.name }}">
+                            {% else %}
+                                <span class="product-fallback"></span>
+                            {% endif %}
+                        </div>
+                        <div class="product-name">{{ fav.product.name }}</div>
+                        <div class="product-meta">
+                            <span class="stars">★★★★★</span>
+                            <span>{{ fav.product.rating }}</span>
+                        </div>
+                        <div class="amount-row" style="margin-top:6px;">
+                            <span class="price">¥{{ fav.product.price }}</span>
+                            {% if fav.product.original_price %}
+                                <span class="old-price">¥{{ fav.product.original_price }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    <div style="display:flex;gap:6px;margin-top:8px;">
+                        <form method="post" action="{% url 'shop:add_to_cart' fav.product.id %}">
+                            {% csrf_token %}
+                            <button class="round-add" type="submit" title="加入购物车">+</button>
+                        </form>
+                        <form method="post" action="{% url 'shop:favorite_toggle' fav.product.id %}">
+                            {% csrf_token %}
+                            <button class="round-add" type="submit" style="color:var(--danger);" title="取消收藏">&times;</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="fav-empty">
+            <div class="fav-empty-icon">❤️</div>
+            <p style="font-size:16px;">暂无收藏商品</p>
+            <a class="btn btn-primary" href="{% url 'shop:category' %}" style="margin-top:12px;">去逛逛</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
